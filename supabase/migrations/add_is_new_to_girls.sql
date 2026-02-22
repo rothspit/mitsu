@@ -1,0 +1,1 @@
+ALTER TABLE girls ADD COLUMN IF NOT EXISTS is_new boolean DEFAULT false;
