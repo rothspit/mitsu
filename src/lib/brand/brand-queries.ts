@@ -29,6 +29,7 @@ export interface Schedule {
   end_time: string
   status?: string
   comment?: string
+  schedule_text?: string
   area_id?: string
   girl?: Girl
   area?: { id: string; name: string; slug: string } | null

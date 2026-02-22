@@ -52,6 +52,11 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
         <p className="text-sm font-medium text-[#1c1917]" style={{ fontFamily: serif }}>
           {girl?.name || '—'}
         </p>
+        {schedule.schedule_text && (
+          <p className="text-[10px] text-white bg-[#b8860b] rounded-full px-2 py-0.5 mt-1 inline-block">
+            {schedule.schedule_text}
+          </p>
+        )}
         <p className="text-[10px] text-[#b8860b] mt-1">
           {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
         </p>

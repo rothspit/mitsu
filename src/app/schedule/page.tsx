@@ -66,6 +66,11 @@ function ScheduleRow({ schedule }: { schedule: Schedule }) {
         <p className="text-sm font-medium text-[#1c1917] truncate" style={{ fontFamily: serif }}>
           {girl?.name || '—'}
         </p>
+        {schedule.schedule_text && (
+          <span className="text-[10px] text-white bg-[#b8860b] rounded-full px-2 py-0.5 mt-0.5 inline-block">
+            {schedule.schedule_text}
+          </span>
+        )}
         {girl?.age && <p className="text-[10px] text-[#78716c] mt-0.5">{girl.age}歳</p>}
         {areaName && <p className="text-[10px] text-[#b8860b]/70 mt-0.5">{areaName}</p>}
       </div>

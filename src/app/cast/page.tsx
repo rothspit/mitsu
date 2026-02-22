@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { getBrand } from '@/lib/brand/get-brand'
-import { getGirlsByBrand } from '@/lib/brand/brand-queries'
+import { getGirlsByBrand, getGirlsCount } from '@/lib/brand/brand-queries'
 import type { Girl } from '@/lib/brand/brand-queries'
 import { getGirlImageUrl } from '@/lib/brand/image-utils'
 
@@ -64,9 +64,10 @@ function GirlCard({ girl }: { girl: Girl }) {
 }
 
 export default async function MitsuCastPage() {
-  const [brand, girls] = await Promise.all([
+  const [brand, girls, girlsCount] = await Promise.all([
     getBrand(SLUG),
     getGirlsByBrand({ forceSlug: SLUG }),
+    getGirlsCount(SLUG),
   ])
 
   return (
@@ -87,7 +88,7 @@ export default async function MitsuCastPage() {
           {brand.name}｜{brand.area || ''}
         </p>
         <p className="text-center text-[#b8860b] text-sm tracking-wider mb-10">
-          在籍 {girls.length}名
+          在籍 {girlsCount}名
         </p>
 
         {girls.length > 0 ? (
