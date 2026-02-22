@@ -40,7 +40,7 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
   const areaName = schedule.area?.name
 
   return (
-    <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition">
+    <Link href={girl ? `/girls/${girl.id}` : '#'} className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition">
       <div className="aspect-[3/4] bg-[#f5f5f4] flex items-center justify-center overflow-hidden">
         {imageUrl ? (
           <img src={imageUrl} alt={girl?.name || ''} className="w-full h-full object-cover" />
@@ -62,7 +62,7 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
         </p>
         <p className="text-[9px] text-[#78716c] mt-0.5">{areaName || '西船橋・葛西・錦糸町'}</p>
       </div>
-    </div>
+    </Link>
   )
 }
 
