@@ -1,4 +1,4 @@
-import type { MetadataRoute } from 'next';
+import type { MetadataRoute } from 'next'
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -6,10 +6,10 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/_next/'],
+        disallow: ['/api/', '/_next/', '/admin/', '/cast-login/'],
       },
     ],
-    sitemap: 'https://diabro.co.jp/sitemap.xml',
-    host: 'https://diabro.co.jp',
-  };
+    sitemap: 'https://h-mitsu.com/sitemap.xml',
+    host: 'https://h-mitsu.com',
+  }
 }

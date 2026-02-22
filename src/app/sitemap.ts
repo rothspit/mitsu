@@ -1,21 +1,45 @@
-import type { MetadataRoute } from 'next';
+import type { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://diabro.co.jp';
-  const now = new Date();
+  const baseUrl = 'https://h-mitsu.com'
+  const now = new Date()
 
   return [
     {
       url: baseUrl,
       lastModified: now,
-      changeFrequency: 'weekly',
+      changeFrequency: 'daily',
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/recruit`,
+      url: `${baseUrl}/cast`,
       lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.6,
+      changeFrequency: 'daily',
+      priority: 0.9,
     },
-  ];
+    {
+      url: `${baseUrl}/girls`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/schedule`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/diary`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/diaries`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.7,
+    },
+  ]
 }
