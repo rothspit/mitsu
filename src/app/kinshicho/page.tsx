@@ -13,7 +13,6 @@ const supabase = createClient(
 
 const serif = "var(--font-noto-serif), 'Noto Serif JP', serif"
 const BRAND_SLUG = 'hitomitsu'
-const AREA_SLUG = 'kinshicho'
 
 // ============================================
 // 朝8時基準の日付ユーティリティ
@@ -168,7 +167,6 @@ export default function KinshichoSchedulePage() {
   const [selectedDate, setSelectedDate] = useState(initialDate)
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [brandId, setBrandId] = useState<string | null>(null)
-  const [areaId, setAreaId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   // 月カレンダー用
@@ -187,41 +185,38 @@ export default function KinshichoSchedulePage() {
   const displayWeek = useMemo(() => getWeekDates(selectedDate), [selectedDate])
   const calendarWeeks = useMemo(() => getCalendarWeeks(calYear, calMonth), [calYear, calMonth])
 
-  // brand_id + area_id 解決
   useEffect(() => {
-    Promise.all([
-      supabase.from('brands').select('id').eq('slug', BRAND_SLUG).single(),
-      supabase.from('areas').select('id').eq('slug', AREA_SLUG).single(),
-    ]).then(([brandRes, areaRes]) => {
-      if (brandRes.data) setBrandId(brandRes.data.id)
-      if (areaRes.data) setAreaId(areaRes.data.id)
-    })
+    supabase
+      .from('brands')
+      .select('id')
+      .eq('slug', BRAND_SLUG)
+      .single()
+      .then(({ data }) => {
+        if (data) setBrandId(data.id)
+      })
   }, [])
 
-  // 週表示: 出勤データ取得（西船橋エリアのみ）
   const fetchSchedules = useCallback(async () => {
-    if (!brandId || !areaId) return
+    if (!brandId) return
     setLoading(true)
     const { data } = await supabase
       .from('schedules')
       .select('*, girl:girls(*), area:areas(id, name, slug)')
       .eq('brand_id', brandId)
-      .eq('area_id', areaId)
       .eq('date', selectedDate)
       .eq('status', 'working')
       .not('start_time', 'is', null)
       .order('start_time', { ascending: true })
     setSchedules((data ?? []) as Schedule[])
     setLoading(false)
-  }, [brandId, areaId, selectedDate])
+  }, [brandId, selectedDate])
 
   useEffect(() => {
     if (viewMode === 'week') fetchSchedules()
   }, [fetchSchedules, viewMode])
 
-  // 月表示: 月間データ取得（西船橋エリアのみ）
   const fetchMonthData = useCallback(async () => {
-    if (!brandId || !areaId) return
+    if (!brandId) return
     setMonthLoading(true)
     const start = monthStart(calYear, calMonth)
     const end = monthEnd(calYear, calMonth)
@@ -230,7 +225,6 @@ export default function KinshichoSchedulePage() {
       .from('schedules')
       .select('date, girl:girls(name)')
       .eq('brand_id', brandId)
-      .eq('area_id', areaId)
       .eq('status', 'working')
       .not('start_time', 'is', null)
       .gte('date', start)
@@ -250,7 +244,7 @@ export default function KinshichoSchedulePage() {
     setMonthCounts(counts)
     setMonthNames(names)
     setMonthLoading(false)
-  }, [brandId, areaId, calYear, calMonth])
+  }, [brandId, calYear, calMonth])
 
   useEffect(() => {
     if (viewMode === 'month') fetchMonthData()
