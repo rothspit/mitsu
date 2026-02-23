@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { createClient } from '@supabase/supabase-js'
 import { getBrand } from '@/lib/brand/get-brand'
 import { getGirlById, getWeekScheduleByGirl } from '@/lib/brand/brand-queries'
 import type { Schedule } from '@/lib/brand/brand-queries'
@@ -49,13 +50,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
+async function getApprovedReviews(girlId: string) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const { data } = await supabase
+    .from('reviews')
+    .select('id, nickname, rating, title, content, created_at')
+    .eq('girl_id', girlId)
+    .eq('is_approved', true)
+    .order('created_at', { ascending: false })
+    .limit(20)
+  return data ?? []
+}
+
 export default async function MitsuGirlDetailPage({ params }: Props) {
   const { id } = await params
   const weekStart = getMonday()
-  const [brand, girl, weekSchedules] = await Promise.all([
+  const [brand, girl, weekSchedules, reviews] = await Promise.all([
     getBrand(SLUG),
     getGirlById(id, SLUG),
     getWeekScheduleByGirl(id, weekStart, SLUG),
+    getApprovedReviews(id),
   ])
-  return <MitsuGirlDetail girl={girl} brand={brand} weekSchedules={weekSchedules} weekStart={weekStart} />
+  return <MitsuGirlDetail girl={girl} brand={brand} weekSchedules={weekSchedules} weekStart={weekStart} reviews={reviews} />
 }

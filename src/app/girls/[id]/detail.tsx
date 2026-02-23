@@ -173,16 +173,176 @@ function WeekSchedule({ schedules, weekStart }: { schedules: Schedule[]; weekSta
   )
 }
 
+export interface Review {
+  id: string
+  nickname: string
+  rating: number
+  title: string | null
+  content: string
+  created_at: string
+}
+
+function Stars({ count }: { count: number }) {
+  return (
+    <span className="text-[#b8860b]">
+      {'★'.repeat(count)}{'☆'.repeat(5 - count)}
+    </span>
+  )
+}
+
+function ReviewList({ reviews }: { reviews: Review[] }) {
+  if (reviews.length === 0) return null
+  return (
+    <div className="space-y-4">
+      {reviews.map((r) => {
+        const date = new Date(r.created_at)
+        const dateStr = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`
+        return (
+          <div key={r.id} className="bg-[#fafaf9] rounded-lg p-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-[#78716c]">{r.nickname}</span>
+              <span className="text-[10px] text-[#a8a29e]">{dateStr}</span>
+            </div>
+            <div className="text-sm mb-1"><Stars count={r.rating} /></div>
+            {r.title && <p className="text-sm font-medium text-[#1c1917] mb-1">{r.title}</p>}
+            <p className="text-sm text-[#44403c] leading-relaxed whitespace-pre-line">{r.content}</p>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function ReviewForm({ girlId }: { girlId: string }) {
+  const [open, setOpen] = useState(false)
+  const [nickname, setNickname] = useState('')
+  const [rating, setRating] = useState(5)
+  const [title, setTitle] = useState('')
+  const [content, setContent] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [done, setDone] = useState(false)
+  const [error, setError] = useState('')
+
+  const submit = useCallback(async () => {
+    if (!nickname.trim() || !content.trim()) {
+      setError('ニックネームと口コミ内容を入力してください')
+      return
+    }
+    setSubmitting(true)
+    setError('')
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ girl_id: girlId, nickname: nickname.trim(), rating, title: title.trim() || null, content: content.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || '送信に失敗しました')
+      setDone(true)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }, [girlId, nickname, rating, title, content])
+
+  if (done) {
+    return (
+      <div className="bg-[#fafaf9] rounded-lg p-5 text-center">
+        <p className="text-sm text-[#44403c]">口コミを投稿しました。<br />承認後に表示されます。</p>
+      </div>
+    )
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="w-full border border-[#b8860b]/30 text-[#b8860b] text-xs py-3 tracking-wider hover:bg-[#b8860b]/5 transition rounded-lg"
+      >
+        口コミを書く
+      </button>
+    )
+  }
+
+  return (
+    <div className="bg-[#fafaf9] rounded-lg p-5 space-y-3">
+      <div>
+        <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">ニックネーム *</label>
+        <input
+          type="text"
+          value={nickname}
+          onChange={(e) => setNickname(e.target.value)}
+          maxLength={50}
+          className="w-full border border-[#d6d3d1] rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#b8860b]"
+          placeholder="匿名"
+        />
+      </div>
+      <div>
+        <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">評価 *</label>
+        <div className="flex gap-1">
+          {[1, 2, 3, 4, 5].map((v) => (
+            <button key={v} type="button" onClick={() => setRating(v)} className="text-xl">
+              <span className={v <= rating ? 'text-[#b8860b]' : 'text-[#d6d3d1]'}>★</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">タイトル</label>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          maxLength={100}
+          className="w-full border border-[#d6d3d1] rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#b8860b]"
+        />
+      </div>
+      <div>
+        <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">口コミ内容 *</label>
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          maxLength={2000}
+          rows={4}
+          className="w-full border border-[#d6d3d1] rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#b8860b] resize-none"
+        />
+      </div>
+      {error && <p className="text-xs text-red-500">{error}</p>}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={submit}
+          disabled={submitting}
+          className="flex-1 bg-[#b8860b] text-white text-xs py-2.5 rounded tracking-wider hover:bg-[#a0750a] transition disabled:opacity-50"
+        >
+          {submitting ? '送信中...' : '投稿する'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="px-4 text-xs text-[#78716c] border border-[#d6d3d1] rounded hover:bg-[#fafaf9] transition"
+        >
+          閉じる
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function MitsuGirlDetail({
   girl,
   brand,
   weekSchedules = [],
   weekStart = '',
+  reviews = [],
 }: {
   girl: Girl | null
   brand: Brand
   weekSchedules?: Schedule[]
   weekStart?: string
+  reviews?: Review[]
 }) {
   if (!girl) {
     return (
@@ -393,6 +553,28 @@ export default function MitsuGirlDetail({
 
           {/* Weekly Schedule */}
           {weekStart && <WeekSchedule schedules={weekSchedules} weekStart={weekStart} />}
+
+          {/* Reviews */}
+          <div className="w-10 h-px bg-[#b8860b]/30 my-8" />
+          <h3
+            className="text-xs tracking-[0.2em] text-[#78716c] mb-4"
+            style={{ fontFamily: serif }}
+          >
+            口コミ
+          </h3>
+          {reviews.length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg text-[#b8860b]" style={{ fontFamily: serif }}>
+                  {(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)}
+                </span>
+                <Stars count={Math.round(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length)} />
+                <span className="text-[10px] text-[#a8a29e]">({reviews.length}件)</span>
+              </div>
+              <ReviewList reviews={reviews} />
+            </div>
+          )}
+          <ReviewForm girlId={girl.id} />
 
           {/* Phone CTA */}
           {brand.phone && (
