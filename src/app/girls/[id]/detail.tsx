@@ -291,6 +291,84 @@ export default function MitsuGirlDetail({
             </>
           )}
 
+          {/* コース・料金 */}
+          <div className="w-10 h-px bg-[#b8860b]/30 my-8" />
+          <h3
+            className="text-xs tracking-[0.2em] text-[#78716c] mb-4"
+            style={{ fontFamily: serif }}
+          >
+            コース・料金
+          </h3>
+          <div className="space-y-2">
+            {[
+              { name: 'ゴールド 60分', price: 15000 },
+              { name: 'ゴールド 80分', price: 19000 },
+              { name: 'ゴールド 100分', price: 23000 },
+              { name: 'ゴールド 120分', price: 27000 },
+              { name: 'ゴールド 150分', price: 33000 },
+              { name: 'ゴールド 180分', price: 39000 },
+            ].map((c) => (
+              <div key={c.name} className="flex items-center justify-between bg-[#fafaf9] rounded-lg px-4 py-3">
+                <span className="text-sm text-[#44403c]">{c.name}</span>
+                <span className="text-sm font-medium text-[#b8860b]" style={{ fontFamily: serif }}>
+                  &yen;{c.price.toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* オプション */}
+          <div className="w-10 h-px bg-[#b8860b]/30 my-8" />
+          <h3
+            className="text-xs tracking-[0.2em] text-[#78716c] mb-4"
+            style={{ fontFamily: serif }}
+          >
+            オプション
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <p className="text-[10px] text-[#a8a29e] tracking-wider mb-2">無料オプション</p>
+              <div className="flex flex-wrap gap-1.5">
+                {['パンスト破り', 'ごっくん', '顔射', '口内発射', 'AF', 'ノーパン待ち合わせ', 'ローター', 'バイブ', '電マ'].map((o) => (
+                  <span key={o} className="text-[11px] text-[#44403c] bg-[#fafaf9] rounded px-2.5 py-1">{o}</span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] text-[#a8a29e] tracking-wider mb-2">有料オプション</p>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { name: 'ピンクローター', price: 2000 },
+                  { name: 'バイブ', price: 2000 },
+                  { name: '電マ', price: 2000 },
+                  { name: 'アナルバイブ', price: 2000 },
+                  { name: 'ホテル代込みコース', price: 2000 },
+                  { name: 'AF', price: 5000 },
+                ].map((o) => (
+                  <span key={o.name} className="text-[11px] text-[#44403c] bg-[#fafaf9] rounded px-2.5 py-1">
+                    {o.name} +&yen;{o.price.toLocaleString()}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] text-[#a8a29e] tracking-wider mb-2">コスプレ (&yen;1,000)</p>
+              <div className="flex flex-wrap gap-1.5">
+                {['ナース', 'メイド', 'バニー', 'スクール水着', 'チアガール', 'CA', 'OL', 'ポリス', '体操着', 'セーラー服', 'チャイナ', '着物', '女教師'].map((o) => (
+                  <span key={o} className="text-[11px] text-[#44403c] bg-[#fafaf9] rounded px-2.5 py-1">{o}</span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] text-[#a8a29e] tracking-wider mb-2">撮影 (無料)</p>
+              <div className="flex flex-wrap gap-1.5">
+                {['写メ撮影', '動画撮影', 'SNS投稿OK', '自撮り'].map((o) => (
+                  <span key={o} className="text-[11px] text-[#44403c] bg-[#fafaf9] rounded px-2.5 py-1">{o}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Weekly Schedule */}
           {weekStart && <WeekSchedule schedules={weekSchedules} weekStart={weekStart} />}
 
