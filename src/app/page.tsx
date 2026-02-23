@@ -3,6 +3,7 @@ import { getBrand } from '@/lib/brand/get-brand'
 import { getTodaySchedule, getDiariesByBrand, getGirlsByBrand, getGirlsCount } from '@/lib/brand/brand-queries'
 import type { Girl, Schedule, Diary } from '@/lib/brand/brand-queries'
 import { getGirlImageUrl } from '@/lib/brand/image-utils'
+import ScheduleSection from './components/ScheduleSection'
 
 export const revalidate = 60
 
@@ -24,45 +25,6 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
       </h3>
       <div className="w-10 h-px bg-[#b8860b] mx-auto" />
     </div>
-  )
-}
-
-function formatTime(t: string | null | undefined): string {
-  if (!t) return ''
-  const hh = t.slice(0, 5)
-  const h = parseInt(hh.slice(0, 2), 10)
-  return h < 7 ? `翌${hh}` : hh
-}
-
-function ScheduleCard({ schedule }: { schedule: Schedule }) {
-  const girl = schedule.girl as Girl | undefined
-  const imageUrl = getGirlImageUrl(girl)
-  const areaName = schedule.area?.name
-
-  return (
-    <Link href={girl ? `/girls/${girl.id}` : '#'} className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition">
-      <div className="aspect-[3/4] bg-[#f5f5f4] flex items-center justify-center overflow-hidden">
-        {imageUrl ? (
-          <img src={imageUrl} alt={girl?.name || ''} className="w-full h-full object-cover" />
-        ) : (
-          <span className="text-3xl opacity-20">👤</span>
-        )}
-      </div>
-      <div className="p-3 text-center">
-        <p className="text-sm font-medium text-[#1c1917]" style={{ fontFamily: serif }}>
-          {girl?.name || '—'}
-        </p>
-        {schedule.schedule_text && (
-          <p className="text-[10px] text-white bg-[#b8860b] rounded-full px-2 py-0.5 mt-1 inline-block">
-            {schedule.schedule_text}
-          </p>
-        )}
-        <p className="text-[10px] text-[#b8860b] mt-1">
-          {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
-        </p>
-        <p className="text-[9px] text-[#78716c] mt-0.5">{areaName || '西船橋・葛西・錦糸町'}</p>
-      </div>
-    </Link>
   )
 }
 
@@ -226,24 +188,8 @@ export default async function MitsuPage() {
         </section>
       )}
 
-      {/* ===== 本日の出勤 ===== */}
-      <section className="py-16 bg-[#fafaf9]">
-        <div className="max-w-2xl mx-auto px-4">
-          <SectionHeading>本日の出勤</SectionHeading>
-          <p className="text-center text-[#b8860b] text-sm tracking-wider mb-6">{schedules.length}名</p>
-          {schedules.length > 0 ? (
-            <div className="grid grid-cols-3 gap-3">
-              {schedules.map((s) => (
-                <ScheduleCard key={s.id} schedule={s} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-[#a8a29e] text-sm py-8">
-              本日の出勤情報はまだありません
-            </p>
-          )}
-        </div>
-      </section>
+      {/* ===== 出勤情報（日付切り替え対応） ===== */}
+      <ScheduleSection brandId={brand.id} initialSchedules={schedules} />
 
       {/* ===== 写メ日記 ===== */}
       <section className="py-16">
