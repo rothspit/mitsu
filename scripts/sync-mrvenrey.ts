@@ -25,6 +25,8 @@ const MRVENREY_API = 'https://webapi2.mrvenrey.jp'
 const MRVENREY_BLOB = 'https://mrvenreyweb.blob.core.windows.net'
 const HITOMITSU_BRAND_ID = 'a1876a1a-1b51-4970-b25e-893ce0910690'
 
+const NISHIFUNABASHI_AREA_ID = 'ae839c4d-e3df-4cc0-9eb6-d3d2a161d1b9'
+
 const GUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const IMAGE_KEYS = [
@@ -414,7 +416,7 @@ async function syncSchedule() {
             {
               girl_id: girl.id,
               date,
-              area_id: null,
+              area_id: NISHIFUNABASHI_AREA_ID,
               brand_id: HITOMITSU_BRAND_ID,
               status: 'working',
               start_time: startTime,
@@ -452,7 +454,7 @@ async function syncSchedule() {
       .select('id, girl_id')
       .eq('brand_id', HITOMITSU_BRAND_ID)
       .eq('date', date)
-      .is('area_id', null)
+      .eq('area_id', NISHIFUNABASHI_AREA_ID)
 
     if (!fetchSchErr && existingSchedules) {
       const toRemove = existingSchedules.filter((s) => !syncedGirlIdsForDate.has(s.girl_id))
