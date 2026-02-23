@@ -12,20 +12,20 @@ const serif = "var(--font-noto-serif), 'Noto Serif JP', serif"
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: '在籍キャスト | 人妻の蜜 西船橋・錦糸町・葛西の熟女デリヘル',
-    description: '西船橋・錦糸町・葛西エリアの人妻・熟女専門デリヘル「人妻の蜜」の在籍キャスト一覧。30代〜50代の魅力的な大人の女性が多数在籍。',
-    keywords: ['デリヘル', '人妻', '熟女', '西船橋', '錦糸町', '葛西', '在籍', 'キャスト'],
+    title: '在籍キャスト一覧｜人妻の蜜',
+    description: '人妻の蜜の在籍キャスト一覧。西船橋・葛西・錦糸町エリアで活躍中の30代〜50代の魅力的な人妻・熟女キャストを写真付きでご紹介。',
+    keywords: ['在籍キャスト', 'デリヘル', '人妻', '熟女', '西船橋', '葛西', '錦糸町'],
     alternates: {
       canonical: 'https://h-mitsu.com/cast',
     },
     openGraph: {
-      title: '在籍キャスト | 人妻の蜜 西船橋・錦糸町・葛西の熟女デリヘル',
-      description: '西船橋・錦糸町・葛西エリアの人妻・熟女専門デリヘル「人妻の蜜」の在籍キャスト一覧。',
+      title: '在籍キャスト一覧｜人妻の蜜',
+      description: '人妻の蜜の在籍キャスト一覧。30代〜50代の魅力的な人妻・熟女キャストを写真付きでご紹介。',
       images: [{ url: '/main_mitsu.jpg', width: 1200, height: 630 }],
     },
     twitter: {
       card: 'summary_large_image',
-      title: '在籍キャスト | 人妻の蜜 西船橋・錦糸町・葛西の熟女デリヘル',
+      title: '在籍キャスト一覧｜人妻の蜜',
       images: ['/main_mitsu.jpg'],
     },
   }

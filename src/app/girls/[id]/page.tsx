@@ -26,12 +26,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const extra = girl as any
   const ageText = girl.age ? `${girl.age}歳` : ''
   const cupText = extra.cup ? ` / ${extra.cup}カップ` : ''
-  const titleText = `${girl.name} (${ageText}) | 西船橋・錦糸町の人妻デリヘル`
-  const descText = `西船橋・錦糸町エリアに出勤中！${girl.name}(${ageText}${cupText})。人妻の蜜おすすめの熟女キャストです。`
+  const titleText = `${girl.name}(${ageText})｜人妻の蜜 西船橋・葛西・錦糸町の人妻デリヘル`
+  const descText = `${girl.name}(${ageText}${cupText})のプロフィール。西船橋・葛西・錦糸町エリアの人妻デリヘル「人妻の蜜」在籍キャスト。コース料金・出勤情報も掲載。`
   return {
     title: titleText,
     description: descText,
-    keywords: ['デリヘル', '人妻', '西船橋', '錦糸町', '指名', girl.name],
+    keywords: ['デリヘル', '人妻', '西船橋', '葛西', '錦糸町', '指名', girl.name],
     alternates: {
       canonical: `https://h-mitsu.com/girls/${id}`,
     },

@@ -316,6 +316,19 @@ export default function MitsuGirlDetail({
               </div>
             ))}
           </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {[
+              { label: '入会金', value: '¥1,000' },
+              { label: '指名料', value: '¥1,000' },
+              { label: '本指名料', value: '¥2,000' },
+              { label: '延長30分', value: '¥8,000' },
+            ].map((f) => (
+              <div key={f.label} className="flex items-center justify-between bg-[#fafaf9]/60 rounded px-3 py-2">
+                <span className="text-[11px] text-[#78716c]">{f.label}</span>
+                <span className="text-[11px] font-medium text-[#44403c]">{f.value}</span>
+              </div>
+            ))}
+          </div>
 
           {/* オプション */}
           <div className="w-10 h-px bg-[#b8860b]/30 my-8" />
@@ -329,7 +342,7 @@ export default function MitsuGirlDetail({
             <div>
               <p className="text-[10px] text-[#a8a29e] tracking-wider mb-2">無料オプション</p>
               <div className="flex flex-wrap gap-1.5">
-                {['パンスト破り', 'ごっくん', '顔射', '口内発射', 'AF', 'ノーパン待ち合わせ', 'ローター', 'バイブ', '電マ'].map((o) => (
+                {['バイブ', 'ローター', 'オナニー鑑賞', '前立腺マッサージ', 'ノーパン訪問', 'ノーブラ訪問', '顔面発射', '即尺', '聖水'].map((o) => (
                   <span key={o} className="text-[11px] text-[#44403c] bg-[#fafaf9] rounded px-2.5 py-1">{o}</span>
                 ))}
               </div>
@@ -338,11 +351,12 @@ export default function MitsuGirlDetail({
               <p className="text-[10px] text-[#a8a29e] tracking-wider mb-2">有料オプション</p>
               <div className="flex flex-wrap gap-1.5">
                 {[
-                  { name: 'ピンクローター', price: 2000 },
-                  { name: 'バイブ', price: 2000 },
+                  { name: 'パンスト(ベージュ・黒)', price: 2000 },
                   { name: '電マ', price: 2000 },
-                  { name: 'アナルバイブ', price: 2000 },
-                  { name: 'ホテル代込みコース', price: 2000 },
+                  { name: 'とびっこ', price: 2000 },
+                  { name: 'パンティ持ち帰り', price: 2000 },
+                  { name: 'ごっくん', price: 2000 },
+                  { name: '即プレイ', price: 2000 },
                   { name: 'AF', price: 5000 },
                 ].map((o) => (
                   <span key={o.name} className="text-[11px] text-[#44403c] bg-[#fafaf9] rounded px-2.5 py-1">
@@ -354,7 +368,7 @@ export default function MitsuGirlDetail({
             <div>
               <p className="text-[10px] text-[#a8a29e] tracking-wider mb-2">コスプレ (&yen;1,000)</p>
               <div className="flex flex-wrap gap-1.5">
-                {['ナース', 'メイド', 'バニー', 'スクール水着', 'チアガール', 'CA', 'OL', 'ポリス', '体操着', 'セーラー服', 'チャイナ', '着物', '女教師'].map((o) => (
+                {['ナース', 'マイクロビキニ', 'スクール水着', 'チアガール', 'セーラー服', '女子高生/ブレザー', '童貞をころすセーター', '全身網タイツ', 'メイド服', '体操服', 'OL', '秘書', '彼シャツ'].map((o) => (
                   <span key={o} className="text-[11px] text-[#44403c] bg-[#fafaf9] rounded px-2.5 py-1">{o}</span>
                 ))}
               </div>
@@ -362,7 +376,15 @@ export default function MitsuGirlDetail({
             <div>
               <p className="text-[10px] text-[#a8a29e] tracking-wider mb-2">撮影 (無料)</p>
               <div className="flex flex-wrap gap-1.5">
-                {['写メ撮影', '動画撮影', 'SNS投稿OK', '自撮り'].map((o) => (
+                {['写真撮影(顔なし)', '写真撮影(顔出し)', '動画撮影(顔なし)', '動画撮影(顔出し)'].map((o) => (
+                  <span key={o} className="text-[11px] text-[#44403c] bg-[#fafaf9] rounded px-2.5 py-1">{o}</span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] text-[#a8a29e] tracking-wider mb-2">その他</p>
+              <div className="flex flex-wrap gap-1.5">
+                {['３P（男2）', '３P（女2）'].map((o) => (
                   <span key={o} className="text-[11px] text-[#44403c] bg-[#fafaf9] rounded px-2.5 py-1">{o}</span>
                 ))}
               </div>

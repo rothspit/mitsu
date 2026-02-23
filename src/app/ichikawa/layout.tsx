@@ -1,20 +1,20 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: '市川の出勤情報 | 人妻の蜜 市川への出張デリヘル',
-  description: '人妻の蜜 市川エリアへの出張対応。西船橋店より出張で人妻・熟女キャストがお伺いします。',
-  keywords: ['デリヘル', '市川', '出張', '人妻', '熟女', '出勤情報'],
+  title: '市川 デリヘル｜人妻の蜜 出張対応',
+  description: '市川エリアへの出張デリヘル「人妻の蜜」。西船橋店より出張対応いたします。30代〜50代の人妻・熟女キャストがお伺いします。',
+  keywords: ['市川', 'デリヘル', '出張', '人妻', '熟女', '人妻の蜜'],
   alternates: {
     canonical: 'https://h-mitsu.com/ichikawa',
   },
   openGraph: {
-    title: '市川の出勤情報 | 人妻の蜜',
-    description: '人妻の蜜 市川エリアへの出張対応。',
+    title: '市川 デリヘル｜人妻の蜜 出張対応',
+    description: '市川エリアへの出張デリヘル「人妻の蜜」。西船橋店より出張対応。',
     images: [{ url: '/main_mitsu.jpg', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: '市川の出勤情報 | 人妻の蜜',
+    title: '市川 デリヘル｜人妻の蜜 出張対応',
     images: ['/main_mitsu.jpg'],
   },
 }

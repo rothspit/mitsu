@@ -25,17 +25,17 @@ export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand(SLUG)
   return {
     title: {
-      template: '%s | 人妻の蜜',
-      default: '人妻の蜜 | 西船橋・錦糸町・葛西の熟女デリヘル',
+      template: '%s｜人妻の蜜',
+      default: '人妻の蜜｜西船橋・葛西・錦糸町の熟女・人妻デリヘル',
     },
-    description: '西船橋、錦糸町、葛西、上野エリアの人妻・熟女専門デリヘル「人妻の蜜」。30代・40代・50代の落ち着いた大人の女性が、あなたを優しく癒やします。',
-    keywords: ['デリヘル', '西船橋', '錦糸町', '葛西', '上野', '人妻', '熟女', '美魔女'],
+    description: '西船橋・葛西・錦糸町エリアの人妻・熟女専門デリヘル「人妻の蜜」。30代・40代・50代の魅力的な大人の女性が多数在籍。出張エリアも充実。',
+    keywords: ['デリヘル', '人妻', '熟女', '西船橋', '葛西', '錦糸町', '市川', '幕張', '出張'],
     alternates: {
       canonical: 'https://h-mitsu.com',
     },
     openGraph: {
-      title: '人妻の蜜 | 西船橋・錦糸町・葛西の熟女デリヘル',
-      description: '大人の秘密、共有しませんか？西船橋・錦糸町の人妻デリヘル。',
+      title: '人妻の蜜｜西船橋・葛西・錦糸町の熟女・人妻デリヘル',
+      description: '西船橋・葛西・錦糸町エリアの人妻・熟女専門デリヘル。30代〜50代の魅力的な大人の女性が多数在籍。',
       siteName: brand.name,
       locale: 'ja_JP',
       type: 'website',
@@ -43,8 +43,8 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
-      title: '人妻の蜜 | 西船橋・錦糸町・葛西の熟女デリヘル',
-      description: '大人の秘密、共有しませんか？西船橋・錦糸町の人妻デリヘル。',
+      title: '人妻の蜜｜西船橋・葛西・錦糸町の熟女・人妻デリヘル',
+      description: '西船橋・葛西・錦糸町エリアの人妻・熟女専門デリヘル。30代〜50代の魅力的な大人の女性が多数在籍。',
       images: ['/main_mitsu.jpg'],
     },
   }
