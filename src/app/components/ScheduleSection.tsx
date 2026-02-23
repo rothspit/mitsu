@@ -128,6 +128,7 @@ export default function ScheduleSection({
       .eq('brand_id', brandId)
       .eq('date', selectedDate)
       .eq('status', 'working')
+      .not('start_time', 'is', null)
       .order('start_time', { ascending: true })
     setSchedules((data ?? []) as Schedule[])
     setLoading(false)

@@ -133,8 +133,11 @@ export async function getGirlById(id: string, forceSlug?: string): Promise<Girl 
 
 export async function getTodaySchedule(forceSlug?: string): Promise<Schedule[]> {
   const brand = await getBrand(forceSlug)
-  // JST (UTC+9) で今日の日付を取得
+  // JST (UTC+9) で朝8時基準の営業日を取得
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000)
+  if (jstNow.getUTCHours() < 8) {
+    jstNow.setUTCDate(jstNow.getUTCDate() - 1)
+  }
   const today = jstNow.toISOString().slice(0, 10) // YYYY-MM-DD
 
   const { data, error } = await supabase
@@ -143,6 +146,7 @@ export async function getTodaySchedule(forceSlug?: string): Promise<Schedule[]> 
     .eq('brand_id', brand.id)
     .eq('date', today)
     .eq('status', 'working')
+    .not('start_time', 'is', null)
     .order('start_time', { ascending: true })
 
   if (error) {
@@ -160,6 +164,7 @@ export async function getScheduleByDate(date: string, forceSlug?: string): Promi
     .eq('brand_id', brand.id)
     .eq('date', date)
     .eq('status', 'working')
+    .not('start_time', 'is', null)
     .order('start_time', { ascending: true })
 
   if (error) {
