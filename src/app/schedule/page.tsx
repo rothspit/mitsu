@@ -423,7 +423,7 @@ export default function MitsuSchedulePage() {
                 className="text-2xl font-medium text-[#b8860b] mt-2 tracking-wider"
                 style={{ fontFamily: serif }}
               >
-                {selectedDate === today ? '本日' : ''}の出勤{' '}
+                {selectedDate === today ? '本日の' : ''}出勤{' '}
                 <span className="text-3xl">{schedules.length}</span>名
               </p>
             )}
