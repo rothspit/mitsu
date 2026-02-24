@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { simpleParser } from 'mailparser'
 import { createClient } from '@supabase/supabase-js'
+import sharp from 'sharp'
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION,
@@ -114,7 +115,36 @@ export async function POST(request: Request) {
         return urls
       }
 
+      // サムネイル生成（画像のみ）
+      const generateThumbnails = async (files: typeof attachments) => {
+        const thumbUrls: string[] = []
+        for (const file of files) {
+          try {
+            const thumbBuffer = await sharp(file.content)
+              .resize(600, 800, { fit: 'cover' })
+              .jpeg({ quality: 85 })
+              .toBuffer()
+
+            const thumbName = `${girl.id}/${Date.now()}-thumb-${file.filename || 'file'}.jpg`
+            const { error } = await supabase.storage
+              .from(STORAGE_BUCKET)
+              .upload(thumbName, thumbBuffer, { contentType: 'image/jpeg' })
+
+            if (!error) {
+              const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(thumbName)
+              thumbUrls.push(data.publicUrl)
+            } else {
+              console.error("❌ [h-mitsu] サムネイルアップロード失敗:", error)
+            }
+          } catch (e) {
+            console.error("❌ [h-mitsu] サムネイル生成失敗:", e)
+          }
+        }
+        return thumbUrls
+      }
+
       const imageUrls = await uploadFiles(imageFiles)
+      const thumbUrls = await generateThumbnails(imageFiles)
       const videoUrls = await uploadFiles(videoFiles)
 
       // 5. データベースに保存
@@ -126,6 +156,7 @@ export async function POST(request: Request) {
           title: subject,
           content: text,
           image_url: imageUrls[0] || null,
+          thumbnail_url: thumbUrls[0] || null,
           videos: videoUrls.join(','),
           published_at: new Date().toISOString(),
           is_published: true,
