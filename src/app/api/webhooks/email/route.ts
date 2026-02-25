@@ -85,7 +85,7 @@ export async function POST(request: Request) {
 
       const { data: girl } = await supabase
         .from('girls')
-        .select('id, brand_id')
+        .select('id, brand_id, name, heaven_member_id')
         .eq('id', girlId)
         .eq('brand_id', 'a1876a1a-1b51-4970-b25e-893ce0910690')
         .single()
@@ -166,6 +166,33 @@ export async function POST(request: Request) {
         console.error("❌ [h-mitsu] DB保存エラー:", insertError)
       } else {
         console.log("✅ [h-mitsu] 日記の投稿に成功しました！")
+      }
+
+      // 6. ヘブン写メ日記同期（fire-and-forget）
+      if (!girl.heaven_member_id) {
+        console.log(`⚠️ [h-mitsu] heaven_member_id未設定のためヘブン同期スキップ: ${girl.name || girlId}`)
+      } else {
+        fetch('http://162.43.74.175/api/diary-sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-sync-secret': 'mitsu-sync-2026',
+          },
+          body: JSON.stringify({
+            cast_name: girl.name,
+            member_id: girl.heaven_member_id,
+            title: subject,
+            body: text,
+            image_urls: imageUrls,
+          }),
+        })
+          .then(async (res) => {
+            const resBody = await res.text()
+            console.log(`✅ [h-mitsu] ヘブン同期完了: ${res.status} ${resBody}`)
+          })
+          .catch((e) => {
+            console.error('❌ [h-mitsu] ヘブン日記同期失敗:', e)
+          })
       }
     }
 
