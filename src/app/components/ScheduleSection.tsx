@@ -69,7 +69,9 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
   const girl = schedule.girl as Girl | undefined
   const imageUrl = getGirlImageUrl(girl)
   const ws = (girl as Record<string, unknown> | undefined)?.wait_status as number | undefined
+  const attendEndTime = (girl as Record<string, unknown> | undefined)?.attend_end_time as string | null | undefined
   const wsConfig = ws ? WAIT_STATUS_CONFIG[ws] : undefined
+  const wsLabel = ws === 2 && attendEndTime ? `接客中 〜 ${attendEndTime.slice(0, 5)}` : wsConfig?.label
 
   return (
     <Link
@@ -94,7 +96,7 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
         )}
         {wsConfig && (
           <span className={`absolute top-1.5 right-1.5 text-[10px] ${wsConfig.bg} ${wsConfig.text} rounded-full px-2 py-0.5 shadow-sm font-medium`}>
-            {wsConfig.label}
+            {wsLabel}
           </span>
         )}
         {schedule.schedule_text && (

@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { cast_name, schedule_date, start_time, end_time, status, action, area_id, wait_status } = body
+    const { cast_name, schedule_date, start_time, end_time, status, action, area_id, wait_status, attend_end_time } = body
 
     if (!cast_name || !action) {
       return NextResponse.json(
@@ -48,9 +48,15 @@ export async function POST(req: NextRequest) {
     // 即姫ステータス更新
     if (action === 'update_status') {
       const ws = typeof wait_status === 'number' ? wait_status : 0
+      const updateData: Record<string, unknown> = { wait_status: ws }
+      if (ws === 2 && attend_end_time) {
+        updateData.attend_end_time = attend_end_time
+      } else if (ws !== 2) {
+        updateData.attend_end_time = null
+      }
       const { error: updateError } = await supabase
         .from('girls')
-        .update({ wait_status: ws })
+        .update(updateData)
         .eq('id', girl.id)
 
       if (updateError) {
