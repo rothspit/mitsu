@@ -59,26 +59,43 @@ function formatTime(t: string | null | undefined): string {
 // カード
 // ============================================
 
+const WAIT_STATUS_CONFIG: Record<number, { label: string; bg: string; text: string; dim?: boolean }> = {
+  1: { label: '待機中', bg: 'bg-green-500', text: 'text-white' },
+  2: { label: '接客中', bg: 'bg-orange-500', text: 'text-white', dim: true },
+  3: { label: '受付終了', bg: 'bg-gray-500', text: 'text-white', dim: true },
+}
+
 function ScheduleCard({ schedule }: { schedule: Schedule }) {
   const girl = schedule.girl as Girl | undefined
   const imageUrl = getGirlImageUrl(girl)
+  const ws = (girl as Record<string, unknown> | undefined)?.wait_status as number | undefined
+  const wsConfig = ws ? WAIT_STATUS_CONFIG[ws] : undefined
 
   return (
     <Link
       href={girl ? `/girls/${girl.id}` : '#'}
-      className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition group"
+      className={`bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition group ${
+        wsConfig?.dim ? 'opacity-60' : ''
+      }`}
     >
       <div className="aspect-[3/4] bg-[#f5f5f4] relative overflow-hidden">
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={girl?.name || ''}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${
+              wsConfig?.dim ? 'grayscale-[30%]' : ''
+            }`}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <span className="text-3xl opacity-15">👤</span>
           </div>
+        )}
+        {wsConfig && (
+          <span className={`absolute top-1.5 right-1.5 text-[10px] ${wsConfig.bg} ${wsConfig.text} rounded-full px-2 py-0.5 shadow-sm font-medium`}>
+            {wsConfig.label}
+          </span>
         )}
         {schedule.schedule_text && (
           <span className="absolute top-1.5 left-1.5 text-[10px] text-white bg-[#b8860b] rounded-full px-2 py-0.5 shadow-sm">
