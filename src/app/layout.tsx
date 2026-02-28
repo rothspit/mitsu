@@ -3,6 +3,7 @@ import { Noto_Serif_JP, Noto_Sans_JP } from 'next/font/google'
 import { getBrand } from '@/lib/brand/get-brand'
 import { BrandProvider } from '@/lib/brand/brand-context'
 import { ThemeInjector } from '@/components/brand/theme-injector'
+import AgeVerification from '@/components/AgeVerification'
 import './globals.css'
 
 const SLUG = 'hitomitsu'
@@ -63,6 +64,7 @@ export default async function RootLayout({
         className={`${notoSerif.variable} ${notoSans.variable} antialiased`}
         style={{ fontFamily: "'Noto Sans JP', sans-serif" }}
       >
+        <AgeVerification />
         <BrandProvider brand={brand}>
           <ThemeInjector />
           {children}
