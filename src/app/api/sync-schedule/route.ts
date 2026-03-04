@@ -28,19 +28,30 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 2. cast_name で girls テーブルから girl_id を検索
-    const { data: girl, error: girlError } = await supabase
+    // 2. cast_name で girls テーブルから girl_id を検索（なければ自動登録）
+    let { data: girl } = await supabase
       .from('girls')
       .select('id, name')
       .eq('brand_id', HITOMITSU_BRAND_ID)
       .eq('name', cast_name)
       .single()
 
-    if (girlError || !girl) {
-      return NextResponse.json(
-        { error: `Girl not found: ${cast_name}` },
-        { status: 404 }
-      )
+    if (!girl) {
+      const { data: newGirl, error: insertError } = await supabase
+        .from('girls')
+        .insert({ name: cast_name, brand_id: HITOMITSU_BRAND_ID, is_active: true })
+        .select('id, name')
+        .single()
+
+      if (insertError || !newGirl) {
+        console.error('sync-schedule auto-register failed:', insertError)
+        return NextResponse.json(
+          { error: `Failed to auto-register: ${cast_name}` },
+          { status: 500 }
+        )
+      }
+      girl = newGirl
+      console.log(`sync-schedule: auto-registered ${cast_name} → ${newGirl.id}`)
     }
 
     // 3. action に応じて処理
