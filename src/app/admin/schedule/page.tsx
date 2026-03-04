@@ -413,6 +413,7 @@ export default function MitsuSchedulePage() {
                   const dateStr = formatDate(d)
                   const isToday = dateStr === today
                   const isWeekend = d.getDay() === 0 || d.getDay() === 6
+                  const workingCount = new Set(schedules.filter((s) => s.date === dateStr && s.status === 'working').map((s) => s.girl_id)).size
                   return (
                     <th
                       key={dateStr}
@@ -423,6 +424,9 @@ export default function MitsuSchedulePage() {
                       <div className={`font-bold ${isToday ? 'text-yellow-400' : ''}`}>
                         {dayLabel(d)} {d.getMonth() + 1}/{d.getDate()}
                       </div>
+                      {workingCount > 0 && (
+                        <div className="text-[10px] text-green-400 mt-0.5">{workingCount}人</div>
+                      )}
                       {isToday && <div className="text-[9px] text-yellow-400 mt-0.5">TODAY</div>}
                     </th>
                   )
