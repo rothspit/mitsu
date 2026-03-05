@@ -115,6 +115,62 @@ function getCalendarWeeks(year: number, month: number): (string | null)[][] {
 }
 
 // ============================================
+// ソート（空き状況ベース）
+// ============================================
+
+function sTimeToMin(t: string | null | undefined): number {
+  if (!t) return 0
+  const [h, m] = t.slice(0, 5).split(':').map(Number)
+  return h * 60 + (m || 0)
+}
+
+function getScheduleCategory(s: Schedule, nowMin: number): number {
+  const start = sTimeToMin(s.start_time)
+  const end = sTimeToMin(s.end_time)
+  const isOvernight = end > 0 && end < start
+  const effectiveEnd = isOvernight ? end + 1440 : end
+
+  if (!isOvernight && end > 0 && end <= nowMin) return 4
+
+  if (start <= nowMin && nowMin < effectiveEnd) {
+    const girl = s.girl as Record<string, unknown> | undefined
+    const ws = (girl?.wait_status as number) || 0
+    return ws === 3 ? 2 : 1
+  }
+
+  if (start > nowMin && start - nowMin <= 120) return 3
+
+  return 5
+}
+
+function getSortKey(s: Schedule, category: number): number {
+  if (category === 1) {
+    const girl = s.girl as Record<string, unknown> | undefined
+    const ws = (girl?.wait_status as number) || 0
+    if (ws === 1) return 0
+    if (ws === 2) {
+      const aEnd = (girl?.attend_end_time as string) || ''
+      return aEnd ? sTimeToMin(aEnd) : 9999
+    }
+    return 0
+  }
+  return sTimeToMin(s.start_time)
+}
+
+function sortByAvailability(schedules: Schedule[], isToday: boolean): { sorted: Schedule[]; endedIds: Set<string> } {
+  if (!isToday) return { sorted: schedules, endedIds: new Set() }
+  const now = jstNow()
+  const nowMin = now.getUTCHours() * 60 + now.getUTCMinutes()
+  const withInfo = schedules.map(s => {
+    const cat = getScheduleCategory(s, nowMin)
+    return { s, cat, sortKey: getSortKey(s, cat) }
+  })
+  withInfo.sort((a, b) => a.cat !== b.cat ? a.cat - b.cat : a.sortKey - b.sortKey)
+  const endedIds = new Set(withInfo.filter(x => x.cat === 4).map(x => x.s.id))
+  return { sorted: withInfo.map(x => x.s), endedIds }
+}
+
+// ============================================
 // カード型の出勤表示
 // ============================================
 
@@ -124,7 +180,7 @@ const WAIT_STATUS_CONFIG: Record<number, { label: string; bg: string; text: stri
   3: { label: '受付終了', bg: 'bg-gray-500', text: 'text-white', dim: true },
 }
 
-function CastCard({ schedule }: { schedule: Schedule }) {
+function CastCard({ schedule, ended }: { schedule: Schedule; ended?: boolean }) {
   const girl = schedule.girl as Girl | undefined
   const imageUrl = getGirlImageUrl(girl)
   const ws = (girl as Record<string, unknown> | undefined)?.wait_status as number | undefined
@@ -136,7 +192,7 @@ function CastCard({ schedule }: { schedule: Schedule }) {
     <Link
       href={girl ? `/girls/${girl.id}` : '#'}
       className={`bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 group ${
-        wsConfig?.dim ? 'opacity-60' : ''
+        ended ? 'opacity-40' : wsConfig?.dim ? 'opacity-60' : ''
       }`}
     >
       <div className="aspect-[3/4] bg-[#f5f5f4] relative overflow-hidden">
@@ -145,7 +201,7 @@ function CastCard({ schedule }: { schedule: Schedule }) {
             src={imageUrl}
             alt={girl?.name || ''}
             className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${
-              wsConfig?.dim ? 'grayscale-[30%]' : ''
+              ended ? 'grayscale' : wsConfig?.dim ? 'grayscale-[30%]' : ''
             }`}
           />
         ) : (
@@ -153,11 +209,15 @@ function CastCard({ schedule }: { schedule: Schedule }) {
             <span className="text-4xl opacity-10">👤</span>
           </div>
         )}
-        {wsConfig && (
+        {ended ? (
+          <span className="absolute top-2 right-2 text-[10px] bg-gray-500 text-white rounded-full px-2.5 py-0.5 shadow-sm font-medium">
+            本日終了
+          </span>
+        ) : wsConfig ? (
           <span className={`absolute top-2 right-2 text-[10px] ${wsConfig.bg} ${wsConfig.text} rounded-full px-2.5 py-0.5 shadow-sm font-medium`}>
             {wsLabel}
           </span>
-        )}
+        ) : null}
         {schedule.schedule_text && (
           <span className="absolute top-2 left-2 text-[10px] text-white bg-[#b8860b] rounded-full px-2.5 py-0.5 shadow-sm">
             {schedule.schedule_text}
@@ -193,6 +253,11 @@ export default function MitsuSchedulePage() {
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [brandId, setBrandId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const isViewingToday = selectedDate === today
+  const { sorted: sortedSchedules, endedIds } = useMemo(
+    () => sortByAvailability(schedules, isViewingToday),
+    [schedules, isViewingToday]
+  )
 
   // 月カレンダー用
   const [calYear, setCalYear] = useState(() => {
@@ -455,8 +520,8 @@ export default function MitsuSchedulePage() {
             </div>
           ) : schedules.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
-              {schedules.map((s) => (
-                <CastCard key={s.id} schedule={s} />
+              {sortedSchedules.map((s) => (
+                <CastCard key={s.id} schedule={s} ended={endedIds.has(s.id)} />
               ))}
             </div>
           ) : (
