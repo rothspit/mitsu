@@ -50,11 +50,6 @@ export default function CtaBar() {
   const [sending, setSending] = useState(false)
   const [omakase, setOmakase] = useState(false)
   const [castNames, setCastNames] = useState<string[]>([])
-
-  // Hide on admin pages
-  if (pathname?.startsWith('/admin')) return null
-
-  // Form state
   const [tel, setTel] = useState('')
   const [name, setName] = useState('')
   const [date, setDate] = useState('')
@@ -80,6 +75,8 @@ export default function CtaBar() {
         if (data) setCastNames(data.map((g) => g.name).filter(Boolean))
       })
   }, [])
+
+  if (pathname?.startsWith('/admin')) return null
 
   const resetForm = () => {
     setTel(''); setName(''); setDate(''); setTime('')
