@@ -265,42 +265,7 @@ export default async function MitsuPage() {
         </div>
       </footer>
 
-      {/* ===== Sticky Footer ===== */}
-      <nav className="fixed bottom-0 left-0 w-full z-40 bg-white/95 backdrop-blur border-t border-[#b8860b]/15">
-        <div className="max-w-md mx-auto flex">
-          {brand.phone && (
-            <a
-              href={`tel:${brand.phone}`}
-              className="flex-1 flex flex-col items-center justify-center py-3 text-[#b8860b] hover:bg-[#b8860b]/5 transition"
-            >
-              <span className="text-base">☎</span>
-              <span className="text-[9px] tracking-wider mt-0.5">電話予約</span>
-            </a>
-          )}
-          <Link
-            href="/schedule"
-            className="flex-1 flex flex-col items-center justify-center py-3 text-[#78716c] hover:text-[#b8860b] transition"
-          >
-            <span className="text-base">📅</span>
-            <span className="text-[9px] tracking-wider mt-0.5">出勤情報</span>
-          </Link>
-          <Link
-            href="/cast"
-            className="flex-1 flex flex-col items-center justify-center py-3 text-[#78716c] hover:text-[#b8860b] transition"
-          >
-            <span className="text-base">👤</span>
-            <span className="text-[9px] tracking-wider mt-0.5">キャスト</span>
-          </Link>
-          <Link
-            href="/diary"
-            className="flex-1 flex flex-col items-center justify-center py-3 text-[#78716c] hover:text-[#b8860b] transition"
-          >
-            <span className="text-base">📝</span>
-            <span className="text-[9px] tracking-wider mt-0.5">日記</span>
-          </Link>
-        </div>
-        <div className="h-[env(safe-area-inset-bottom)]" />
-      </nav>
+      {/* Sticky Footer is now handled by CtaBar component in layout.tsx */}
     </main>
   )
 }

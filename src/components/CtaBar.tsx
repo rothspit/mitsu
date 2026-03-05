@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 
 const PHONE = '050-1743-9555'
@@ -43,11 +44,15 @@ function generateDateOptions() {
 const TIME_OPTIONS = generateTimeOptions()
 
 export default function CtaBar() {
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [done, setDone] = useState(false)
   const [sending, setSending] = useState(false)
   const [omakase, setOmakase] = useState(false)
   const [castNames, setCastNames] = useState<string[]>([])
+
+  // Hide on admin pages
+  if (pathname?.startsWith('/admin')) return null
 
   // Form state
   const [tel, setTel] = useState('')
@@ -124,19 +129,20 @@ export default function CtaBar() {
   return (
     <>
       {/* Fixed CTA Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-[9999] flex border-t border-amber-800/30 shadow-[0_-4px_20px_rgba(0,0,0,0.6)]">
+      <div className="fixed bottom-0 left-0 right-0 z-[9999] flex border-t border-[#b8860b]/20 bg-white/95 backdrop-blur shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
         <a
           href={`tel:${PHONE}`}
-          className="flex-1 flex items-center justify-center gap-2 py-4 text-[15px] font-semibold text-green-400 bg-gradient-to-br from-green-950/80 to-green-950 hover:from-green-900/80 transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[14px] font-semibold text-[#b8860b] hover:bg-[#b8860b]/5 transition-colors"
         >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 01.97-.27 11.36 11.36 0 003.58.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.36 11.36 0 00.57 3.58 1 1 0 01-.27.97l-2.18 2.24z"/></svg>
+          <span className="text-base">☎</span>
           電話する
         </a>
+        <div className="w-px bg-[#b8860b]/15 my-2" />
         <button
           onClick={() => setOpen(true)}
-          className="flex-1 flex items-center justify-center gap-2 py-4 text-[15px] font-semibold text-amber-400 bg-gradient-to-br from-amber-950/60 to-amber-950/90 hover:from-amber-900/60 transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[14px] font-semibold text-white bg-[#b8860b] hover:bg-[#a07508] transition-colors"
         >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+          <span className="text-base">📅</span>
           予約する
         </button>
       </div>
