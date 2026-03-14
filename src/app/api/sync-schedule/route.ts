@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { cast_name, schedule_date, start_time, end_time, status, action, area_id, wait_status, attend_end_time } = body
+    const { cast_name, schedule_date, start_time, end_time, status, action, area_id, area_slug, wait_status, attend_end_time } = body
 
     if (!cast_name || !action) {
       return NextResponse.json(
@@ -78,13 +78,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, girl_id: girl.id, action: 'update_status', wait_status: ws })
     }
 
+    let final_area_id = area_id || null;
+    if (area_slug) {
+      const { data: areaData } = await supabase.from('areas').select('id').eq('slug', area_slug).single();
+      if (areaData) {
+        final_area_id = areaData.id;
+      }
+    }
+
     if (action === 'delete') {
-      const { error: deleteError } = await supabase
+      const query = supabase
         .from('schedules')
         .delete()
         .eq('girl_id', girl.id)
         .eq('date', schedule_date)
-        .is('area_id', area_id || null)
+        
+      if (final_area_id) {
+        query.eq('area_id', final_area_id)
+      } else {
+        query.is('area_id', null)
+      }
+
+      const { error: deleteError } = await query
 
       if (deleteError) {
         console.error('sync-schedule delete error:', deleteError)
@@ -98,7 +113,7 @@ export async function POST(req: NextRequest) {
     const scheduleData: Record<string, unknown> = {
       girl_id: girl.id,
       date: schedule_date,
-      area_id: area_id || null,
+      area_id: final_area_id,
       brand_id: HITOMITSU_BRAND_ID,
       status: status || 'working',
       start_time: start_time || null,
