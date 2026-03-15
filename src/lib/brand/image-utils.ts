@@ -41,26 +41,37 @@ export function getGirlImageUrl(girl: any): string | null {
 
 // Girl オブジェクトから全画像URL を取得
 export function getGirlImageUrls(girl: any): string[] {
-  let rawImages: any[] = [];
+  let rawImages: string[] = [];
+  
   if (girl?.gallery_images) {
     try {
-      rawImages = typeof girl.gallery_images === 'string' ? JSON.parse(girl.gallery_images) : girl.gallery_images;
-    } catch (e) {
-    }
-  } else if (girl?.cast_images && Array.isArray(girl.cast_images) && girl.cast_images.length > 0) {
-    // If it's an array of objects from the CRM API
-    rawImages = girl.cast_images.map((img: any) => img.image_path || img);
-  } else if (girl?.images) {
-    rawImages = girl.images;
-  } else {
-    // Fallback to single profile image so slider isn't empty
+      const parsed = typeof girl.gallery_images === 'string' ? JSON.parse(girl.gallery_images) : girl.gallery_images;
+      if (Array.isArray(parsed)) rawImages.push(...parsed);
+    } catch (e) {}
+  }
+
+  if (girl?.cast_images && Array.isArray(girl.cast_images)) {
+    const castImgs = girl.cast_images.map((img: any) => typeof img === 'string' ? img : img.image_path || img.url);
+    rawImages.push(...castImgs);
+  }
+
+  if (girl?.images && Array.isArray(girl.images)) {
+    rawImages.push(...girl.images);
+  }
+
+  // Fallback to single profile image so slider isn't empty
+  if (rawImages.length === 0) {
     const singleImageUrl = getGirlImageUrl(girl);
     if (singleImageUrl) {
-      return [singleImageUrl];
+      rawImages.push(singleImageUrl);
     }
   }
 
-  let safeImages = Array.isArray(rawImages) ? rawImages : [];
-  safeImages = safeImages.map(formatImageUrl).filter((url) => url && typeof url === 'string' && !url.includes('placehold.co'));
-  return safeImages as string[];
+  let safeImages = rawImages
+    .map(url => typeof url === 'string' ? url : null)
+    .filter(Boolean)
+    .map(url => formatImageUrl(url))
+    .filter(url => url && typeof url === 'string' && !url.includes('placehold.co'));
+
+  return Array.from(new Set(safeImages)) as string[];
 }

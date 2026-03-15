@@ -118,17 +118,7 @@ export async function getGirlById(id: string, forceSlug?: string): Promise<Girl 
   
   if (!girl) return null
   
-  // CRM API sometimes passes `gallery_images` as JSON string
-  let gallery = []
-  if (girl.gallery_images) {
-    gallery = typeof girl.gallery_images === 'string' 
-      ? JSON.parse(girl.gallery_images) 
-      : girl.gallery_images
-  }
-  
-  const images = [girl.idol_image_path || girl.image, ...gallery].filter(Boolean)
-  
-  return { ...girl, images }
+  return girl
 }
 
 // ============================================
