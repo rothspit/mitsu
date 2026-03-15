@@ -4,6 +4,20 @@ const nextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 2592000,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'crm.h-mitsu.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'nuxojcydwxhecncbwjpb.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+      }
+    ]
   },
   async headers() {
     return [

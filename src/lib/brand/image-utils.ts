@@ -8,18 +8,36 @@ export function toProxyImageUrl(blobUrl: string): string | null {
   return blobUrl
 }
 
-// Girl オブジェクトから画像URL を取得（プロキシ経由）
-export function getGirlImageUrl(girl: any): string | null {
-  const images = girl?.images as string[] | undefined
-  if (images && images.length > 0) {
-    return images[0]
-  }
-  return null
+const CRM_STORAGE_BASE = 'https://crm.h-mitsu.com/storage/';
+
+function formatImageUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  
+  // Ex: '/storage/images/1.jpg' -> 'https://crm.h-mitsu.com/storage/images/1.jpg'
+  // Ex: 'images/1.jpg' -> 'https://crm.h-mitsu.com/storage/images/1.jpg'
+  const cleanUrl = url.replace(/^\/?storage\/?/, '');
+  return `${CRM_STORAGE_BASE}${cleanUrl.replace(/^\/+/, '')}`;
 }
 
-// Girl オブジェクトから全画像URL を取得（プロキシ経由）
+// Girl オブジェクトから画像URL を取得
+export function getGirlImageUrl(girl: any): string | null {
+  const url = girl?.idol_image_path || girl?.image || girl?.thumbnail || (girl?.images && girl.images[0]) || girl?.image1_url;
+  return formatImageUrl(url);
+}
+
+// Girl オブジェクトから全画像URL を取得
 export function getGirlImageUrls(girl: any): string[] {
-  const images = girl?.images as string[] | undefined
-  if (!images || images.length === 0) return []
-  return images.filter(Boolean)
+  let rawImages: any[] = [];
+  if (girl?.gallery_images) {
+    try {
+      rawImages = typeof girl.gallery_images === 'string' ? JSON.parse(girl.gallery_images) : girl.gallery_images;
+    } catch (e) {
+    }
+  } else if (girl?.images) {
+    rawImages = girl.images;
+  }
+
+  if (!Array.isArray(rawImages)) return [];
+  return rawImages.map(formatImageUrl).filter(Boolean) as string[];
 }
