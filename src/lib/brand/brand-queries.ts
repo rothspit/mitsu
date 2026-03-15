@@ -1,4 +1,3 @@
-import { supabase } from '@/lib/supabase'
 import { getBrand } from './get-brand'
 
 // ============================================
@@ -64,6 +63,9 @@ export interface Diary {
   [key: string]: unknown
 }
 
+const API_BASE_URL = 'https://crm.h-mitsu.com/api'
+const STORE_ID = 1 // H-Mitsu store ID
+
 // ============================================
 // Girls
 // ============================================
@@ -73,58 +75,60 @@ export async function getGirlsByBrand(opts?: {
   status?: string
   forceSlug?: string
 }): Promise<Girl[]> {
-  const brand = await getBrand(opts?.forceSlug)
-  let query = supabase
-    .from('girls')
-    .select('*')
-    .eq('brand_id', brand.id)
-    .eq('is_active', true)
-    .order('created_at', { ascending: true })
+  try {
+    const res = await fetch(`${API_BASE_URL}/idol/casts?store_id=${STORE_ID}`, {
+      next: { revalidate: 60 } // Cache for 1 minute
+    })
+    if (!res.ok) throw new Error('Failed to fetch casts')
+    
+    const data = await res.json()
+    let casts = data.casts || data.data || []
+    
+    // Map CRM API structure to the expected `Girl` interface
+    casts = casts.map((c: any) => ({
+      ...c,
+      brand_id: String(STORE_ID),
+      is_active: c.status !== '退店' && c.status !== 'お休み中',
+      images: [c.idol_image_path || c.image].filter(Boolean)
+    }))
 
-  if (opts?.status) {
-    query = query.eq('status', opts.status)
-  }
-  if (opts?.limit) {
-    query = query.limit(opts.limit)
-  }
+    if (opts?.status) {
+      casts = casts.filter((c: any) => c.status === opts.status)
+    }
 
-  const { data, error } = await query
-  if (error) {
-    console.error('[getGirlsByBrand]', error.message)
+    if (opts?.limit) {
+      casts = casts.slice(0, opts.limit)
+    }
+
+    return casts
+  } catch (err) {
+    console.error('[getGirlsByBrand]', err)
     return []
   }
-  return (data ?? []) as Girl[]
 }
 
 export async function getGirlsCount(forceSlug?: string): Promise<number> {
-  const brand = await getBrand(forceSlug)
-  const { count, error } = await supabase
-    .from('girls')
-    .select('*', { count: 'exact', head: true })
-    .eq('brand_id', brand.id)
-    .eq('is_active', true)
-
-  if (error) {
-    console.error('[getGirlsCount]', error.message)
-    return 0
-  }
-  return count ?? 0
+  const girls = await getGirlsByBrand({ forceSlug })
+  return girls.length
 }
 
 export async function getGirlById(id: string, forceSlug?: string): Promise<Girl | null> {
-  const brand = await getBrand(forceSlug)
-  const { data, error } = await supabase
-    .from('girls')
-    .select('*')
-    .eq('id', id)
-    .eq('brand_id', brand.id)
-    .single()
-
-  if (error) {
-    console.error('[getGirlById]', error.message)
-    return null
+  const girls = await getGirlsByBrand({ forceSlug })
+  const girl = girls.find(g => String(g.id) === String(id))
+  
+  if (!girl) return null
+  
+  // CRM API sometimes passes `gallery_images` as JSON string
+  let gallery = []
+  if (girl.gallery_images) {
+    gallery = typeof girl.gallery_images === 'string' 
+      ? JSON.parse(girl.gallery_images) 
+      : girl.gallery_images
   }
-  return (data ?? null) as Girl | null
+  
+  const images = [girl.idol_image_path || girl.image, ...gallery].filter(Boolean)
+  
+  return { ...girl, images }
 }
 
 // ============================================
@@ -132,7 +136,6 @@ export async function getGirlById(id: string, forceSlug?: string): Promise<Girl 
 // ============================================
 
 export async function getTodaySchedule(forceSlug?: string): Promise<Schedule[]> {
-  const brand = await getBrand(forceSlug)
   // JST (UTC+9) で朝8時基準の営業日を取得
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000)
   if (jstNow.getUTCHours() < 8) {
@@ -140,61 +143,73 @@ export async function getTodaySchedule(forceSlug?: string): Promise<Schedule[]> 
   }
   const today = jstNow.toISOString().slice(0, 10) // YYYY-MM-DD
 
-  const { data, error } = await supabase
-    .from('schedules')
-    .select('*, girl:girls(*), area:areas(id, name, slug)')
-    .eq('brand_id', brand.id)
-    .eq('date', today)
-    .eq('status', 'working')
-    .not('start_time', 'is', null)
-    .order('start_time', { ascending: true })
-
-  if (error) {
-    console.error('[getTodaySchedule]', error.message)
-    return []
-  }
-  return (data ?? []) as Schedule[]
+  return getScheduleByDate(today, forceSlug)
 }
 
 export async function getScheduleByDate(date: string, forceSlug?: string): Promise<Schedule[]> {
-  const brand = await getBrand(forceSlug)
-  const { data, error } = await supabase
-    .from('schedules')
-    .select('*, girl:girls(*), area:areas(id, name, slug)')
-    .eq('brand_id', brand.id)
-    .eq('date', date)
-    .eq('status', 'working')
-    .not('start_time', 'is', null)
-    .order('start_time', { ascending: true })
-
-  if (error) {
-    console.error('[getScheduleByDate]', error.message)
+  try {
+    const res = await fetch(`${API_BASE_URL}/idol/schedules?store_id=${STORE_ID}&date=${date}`, {
+      next: { revalidate: 60 }
+    })
+    if (!res.ok) throw new Error('Failed to fetch schedules')
+    
+    const data = await res.json()
+    const dayData = (data.schedules || []).find((s: any) => s.date === date)
+    if (!dayData) return []
+    
+    return dayData.casts.map((c: any) => ({
+      id: `${date}-${c.id}`,
+      girl_id: String(c.cast_id),
+      brand_id: String(STORE_ID),
+      date: date,
+      start_time: c.start_time,
+      end_time: c.end_time,
+      status: c.status,
+      girl: {
+        id: String(c.cast_id),
+        name: c.name,
+        images: [c.idol_image_path || c.image].filter(Boolean),
+        brand_id: String(STORE_ID),
+        is_active: true,
+        created_at: '',
+        updated_at: ''
+      }
+    }))
+  } catch (err) {
+    console.error('[getScheduleByDate]', err)
     return []
   }
-  return (data ?? []) as Schedule[]
 }
 
 export async function getWeekScheduleByGirl(girlId: string, weekStart: string, forceSlug?: string): Promise<Schedule[]> {
-  const brand = await getBrand(forceSlug)
-  // weekStartから6日後
-  const end = new Date(weekStart)
-  end.setDate(end.getDate() + 6)
-  const weekEnd = end.toISOString().slice(0, 10)
-
-  const { data, error } = await supabase
-    .from('schedules')
-    .select('*, area:areas(id, name, slug)')
-    .eq('brand_id', brand.id)
-    .eq('girl_id', girlId)
-    .gte('date', weekStart)
-    .lte('date', weekEnd)
-    .order('date', { ascending: true })
-
-  if (error) {
-    console.error('[getWeekScheduleByGirl]', error.message)
+  try {
+    const res = await fetch(`${API_BASE_URL}/idol/schedules?store_id=${STORE_ID}`, {
+      next: { revalidate: 60 }
+    })
+    if (!res.ok) throw new Error('Failed to fetch schedules')
+    
+    const data = await res.json()
+    const schedules: Schedule[] = []
+    
+    for (const day of (data.schedules || [])) {
+      const castSchedule = day.casts.find((c: any) => String(c.cast_id) === String(girlId))
+      if (castSchedule && castSchedule.start_time) {
+        schedules.push({
+          id: `${day.date}-${castSchedule.id}`,
+          girl_id: String(castSchedule.cast_id),
+          brand_id: String(STORE_ID),
+          date: day.date,
+          start_time: castSchedule.start_time,
+          end_time: castSchedule.end_time,
+          status: castSchedule.status
+        })
+      }
+    }
+    return schedules
+  } catch (err) {
+    console.error('[getWeekScheduleByGirl]', err)
     return []
   }
-  return (data ?? []) as Schedule[]
 }
 
 // ============================================
@@ -206,44 +221,50 @@ export async function getDiariesByBrand(opts?: {
   category?: string
   forceSlug?: string
 }): Promise<Diary[]> {
-  const brand = await getBrand(opts?.forceSlug)
-  let query = supabase
-    .from('diaries')
-    .select('*, girl:girls(id, name, images)')
-    .eq('brand_id', brand.id)
-    .eq('is_published', true)
-    .order('published_at', { ascending: false })
+  try {
+    const res = await fetch(`${API_BASE_URL}/idol/diaries?store_id=${STORE_ID}`, {
+      next: { revalidate: 60 }
+    })
+    if (!res.ok) throw new Error('Failed to fetch diaries')
+    
+    const data = await res.json()
+    let diaries: Diary[] = (data.diaries || []).map((d: any) => ({
+      id: String(d.id),
+      brand_id: String(STORE_ID),
+      girl_id: String(d.cast_id),
+      slug: String(d.id),
+      title: d.title,
+      content: d.content,
+      thumbnail_url: d.images ? d.images[0] : null,
+      is_published: true,
+      published_at: d.created_at,
+      created_at: d.created_at,
+      updated_at: d.created_at,
+      girl: {
+        id: String(d.cast_id),
+        name: d.cast_name,
+        images: d.cast_image ? [d.cast_image] : [],
+        brand_id: String(STORE_ID),
+        is_active: true,
+        created_at: '',
+        updated_at: ''
+      }
+    }))
 
-  if (opts?.category) {
-    query = query.eq('category', opts.category)
-  }
-  if (opts?.limit) {
-    query = query.limit(opts.limit)
-  }
+    if (opts?.limit) {
+      diaries = diaries.slice(0, opts.limit)
+    }
 
-  const { data, error } = await query
-  if (error) {
-    console.error('[getDiariesByBrand]', error.message)
+    return diaries
+  } catch (err) {
+    console.error('[getDiariesByBrand]', err)
     return []
   }
-  return (data ?? []) as Diary[]
 }
 
 export async function getDiaryBySlug(slug: string, forceSlug?: string): Promise<Diary | null> {
-  const brand = await getBrand(forceSlug)
-  const { data, error } = await supabase
-    .from('diaries')
-    .select('*, girl:girls(id, name, images)')
-    .eq('slug', slug)
-    .eq('brand_id', brand.id)
-    .eq('is_published', true)
-    .single()
-
-  if (error) {
-    console.error('[getDiaryBySlug]', error.message)
-    return null
-  }
-  return (data ?? null) as Diary | null
+  const diaries = await getDiariesByBrand({ forceSlug })
+  return diaries.find(d => String(d.slug) === String(slug)) || null
 }
 
 // ============================================
@@ -254,21 +275,17 @@ export async function getPhotoDiaries(opts?: {
   limit?: number
   forceSlug?: string
 }): Promise<PhotoDiary[]> {
-  const brand = await getBrand(opts?.forceSlug)
-  let query = supabase
-    .from('photo_diaries')
-    .select('*, girl:girls(id, name)')
-    .eq('brand_id', brand.id)
-    .order('published_at', { ascending: false })
-
-  if (opts?.limit) {
-    query = query.limit(opts.limit)
-  }
-
-  const { data, error } = await query
-  if (error) {
-    console.error('[getPhotoDiaries]', error.message)
-    return []
-  }
-  return (data ?? []) as PhotoDiary[]
+  // Mapping standard diaries to PhotoDiary since CRM API handles them similarly
+  const diaries = await getDiariesByBrand(opts)
+  
+  return diaries.map(d => ({
+    id: d.id,
+    girl_id: d.girl_id || '',
+    brand_id: d.brand_id,
+    image_url: d.thumbnail_url || '',
+    comment: d.content || null,
+    published_at: d.published_at || d.created_at,
+    created_at: d.created_at,
+    girl: d.girl ? { id: d.girl.id, name: d.girl.name } : null
+  }))
 }

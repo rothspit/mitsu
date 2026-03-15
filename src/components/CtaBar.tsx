@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
 
 const PHONE = '050-1743-9555'
 const DISCORD_WEBHOOK = 'https://discordapp.com/api/webhooks/1475912332063408404/odrVJd5Ftsyh-5_oaJq75ELf-gJvTxtqMH18i6trvod2fBpTc7YTHtuY1_882A8IYtmF'
@@ -61,19 +60,15 @@ export default function CtaBar() {
   const dateOptions = generateDateOptions()
 
   useEffect(() => {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-    supabase
-      .from('girls')
-      .select('name')
-      .eq('brand_id', BRAND_ID)
-      .eq('is_active', true)
-      .order('name')
-      .then(({ data }) => {
-        if (data) setCastNames(data.map((g) => g.name).filter(Boolean))
+    fetch('https://crm.h-mitsu.com/api/idol/casts?store_id=1')
+      .then((res) => res.json())
+      .then((data) => {
+        const casts = data.casts || data.data || []
+        // Only active casts (not 退店, not お休み中)
+        const activeCasts = casts.filter((c: any) => c.status !== '退店' && c.status !== 'お休み中')
+        setCastNames(activeCasts.map((g: any) => g.name).filter(Boolean))
       })
+      .catch((err) => console.error('Failed to fetch cast names for CtaBar', err))
   }, [])
 
   if (pathname?.startsWith('/admin')) return null
