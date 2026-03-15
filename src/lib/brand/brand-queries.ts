@@ -77,7 +77,7 @@ export async function getGirlsByBrand(opts?: {
 }): Promise<Girl[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/idol/casts?store_id=${STORE_ID}`, {
-      cache: 'no-store' // Completely disable cache for real-time updates
+      next: { revalidate: 60 } // Cache for 1 minute
     })
     if (!res.ok) throw new Error('Failed to fetch casts')
     
@@ -139,7 +139,7 @@ export async function getTodaySchedule(forceSlug?: string): Promise<Schedule[]> 
 export async function getScheduleByDate(date: string, forceSlug?: string): Promise<Schedule[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/idol/schedules?store_id=${STORE_ID}&date=${date}`, {
-      cache: 'no-store'
+      next: { revalidate: 60 }
     })
     if (!res.ok) throw new Error('Failed to fetch schedules')
     
@@ -174,7 +174,7 @@ export async function getScheduleByDate(date: string, forceSlug?: string): Promi
 export async function getWeekScheduleByGirl(girlId: string, weekStart: string, forceSlug?: string): Promise<Schedule[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/idol/schedules?store_id=${STORE_ID}`, {
-      cache: 'no-store'
+      next: { revalidate: 60 }
     })
     if (!res.ok) throw new Error('Failed to fetch schedules')
     
@@ -213,7 +213,7 @@ export async function getDiariesByBrand(opts?: {
 }): Promise<Diary[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/idol/diaries?store_id=${STORE_ID}`, {
-      cache: 'no-store'
+      next: { revalidate: 60 }
     })
     if (!res.ok) throw new Error('Failed to fetch diaries')
     

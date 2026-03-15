@@ -2,14 +2,9 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { getGirlImageUrl } from '@/lib/brand/image-utils'
 import type { Girl, Schedule } from '@/lib/brand/brand-queries'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 const serif = "var(--font-noto-serif), 'Noto Serif JP', serif"
 const DOW_LABELS = ['日', '月', '火', '水', '木', '金', '土']

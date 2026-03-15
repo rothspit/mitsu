@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { simpleParser } from 'mailparser'
-import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
+import { supabase } from '@/lib/supabase'
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION,
@@ -11,11 +11,6 @@ const s3 = new S3Client({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 })
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 const STORAGE_BUCKET = 'mitsu-diary'
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin as supabase } from '@/lib/supabase-admin'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -111,10 +111,6 @@ export async function POST(req: NextRequest) {
   if (secret !== SYNC_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-  const supabase = createClient(supabaseUrl, serviceRoleKey)
 
   const result = { girls: { updated: 0, skipped: 0 }, schedules: { upserted: 0, skipped: 0, removed: 0, errors: 0 } }
 
