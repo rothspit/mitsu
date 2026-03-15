@@ -22,7 +22,20 @@ function formatImageUrl(url: string | null | undefined): string | null {
 
 // Girl オブジェクトから画像URL を取得
 export function getGirlImageUrl(girl: any): string | null {
-  const url = girl?.profile_image || (girl?.cast_images && girl.cast_images[0]) || girl?.idol_image_path || girl?.image || girl?.thumbnail || (girl?.images && girl.images[0]) || girl?.image1_url;
+  let url = girl?.profile_image;
+  if (!url && girl?.cast_images && Array.isArray(girl.cast_images) && girl.cast_images.length > 0) {
+    const firstImg = girl.cast_images[0];
+    url = typeof firstImg === 'string' ? firstImg : firstImg.image_path || firstImg.url;
+  }
+  url = url || girl?.idol_image_path || girl?.image || girl?.thumbnail;
+  if (!url && girl?.images && Array.isArray(girl.images) && girl.images.length > 0) {
+     url = girl.images[0];
+  }
+  url = url || girl?.image1_url;
+  
+  if (url && typeof url === 'string' && url.includes('placehold.co')) {
+    return null; // Ignore external dummy service to prevent Next.js UI Preload warnings
+  }
   return formatImageUrl(url);
 }
 
@@ -34,10 +47,20 @@ export function getGirlImageUrls(girl: any): string[] {
       rawImages = typeof girl.gallery_images === 'string' ? JSON.parse(girl.gallery_images) : girl.gallery_images;
     } catch (e) {
     }
+  } else if (girl?.cast_images && Array.isArray(girl.cast_images) && girl.cast_images.length > 0) {
+    // If it's an array of objects from the CRM API
+    rawImages = girl.cast_images.map((img: any) => img.image_path || img);
   } else if (girl?.images) {
     rawImages = girl.images;
+  } else {
+    // Fallback to single profile image so slider isn't empty
+    const singleImageUrl = getGirlImageUrl(girl);
+    if (singleImageUrl) {
+      return [singleImageUrl];
+    }
   }
 
-  if (!Array.isArray(rawImages)) return [];
-  return rawImages.map(formatImageUrl).filter(Boolean) as string[];
+  let safeImages = Array.isArray(rawImages) ? rawImages : [];
+  safeImages = safeImages.map(formatImageUrl).filter((url) => url && typeof url === 'string' && !url.includes('placehold.co'));
+  return safeImages as string[];
 }
