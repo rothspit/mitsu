@@ -391,7 +391,7 @@ export default function NishifunaSchedulePage() {
                         {new Date(dateStr + 'T00:00:00Z').getUTCDate()}
                       </span>
                       {isSelected && (
-                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-[#b8860b] rounded-full" />
+                        <span className="block absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-[#b8860b] rounded-full" />
                       )}
                     </button>
                   )
@@ -533,16 +533,16 @@ export default function NishifunaSchedulePage() {
                               {count}名
                             </span>
                             {names.length > 0 && (
-                              <div className="mt-0.5 overflow-hidden">
+                              <span className="block mt-0.5 overflow-hidden">
                                 {names.slice(0, 2).map((n) => (
-                                  <p key={n} className="text-[8px] text-[#78716c] truncate leading-tight">
+                                  <span key={n} className="block text-[8px] text-[#78716c] truncate leading-tight">
                                     {n}
-                                  </p>
+                                  </span>
                                 ))}
                                 {names.length > 2 && (
-                                  <p className="text-[8px] text-[#a8a29e]">+{names.length - 2}</p>
+                                  <span className="block text-[8px] text-[#a8a29e]">+{names.length - 2}</span>
                                 )}
-                              </div>
+                              </span>
                             )}
                           </>
                         )}

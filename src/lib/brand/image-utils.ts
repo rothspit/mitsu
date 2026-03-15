@@ -22,7 +22,7 @@ function formatImageUrl(url: string | null | undefined): string | null {
 
 // Girl オブジェクトから画像URL を取得
 export function getGirlImageUrl(girl: any): string | null {
-  const url = girl?.idol_image_path || girl?.image || girl?.thumbnail || (girl?.images && girl.images[0]) || girl?.image1_url;
+  const url = girl?.profile_image || (girl?.cast_images && girl.cast_images[0]) || girl?.idol_image_path || girl?.image || girl?.thumbnail || (girl?.images && girl.images[0]) || girl?.image1_url;
   return formatImageUrl(url);
 }
 
