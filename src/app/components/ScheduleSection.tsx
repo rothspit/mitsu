@@ -198,22 +198,44 @@ export default function ScheduleSection({
     [schedules, isViewingToday]
   )
 
-  // 日付が変わったらfetch（今日はinitialを使う）
   const fetchSchedules = useCallback(async () => {
     if (selectedDate === today) {
       setSchedules(initialSchedules)
       return
     }
     setLoading(true)
-    const { data } = await supabase
-      .from('schedules')
-      .select('*, girl:girls(*), area:areas(id, name, slug)')
-      .eq('brand_id', brandId)
-      .eq('date', selectedDate)
-      .eq('status', 'working')
-      .not('start_time', 'is', null)
-      .order('start_time', { ascending: true })
-    setSchedules((data ?? []) as Schedule[])
+    try {
+      const res = await fetch(`https://crm.h-mitsu.com/api/idol/schedules?store_id=1&date=${selectedDate}`)
+      if (!res.ok) throw new Error('API format mismatch')
+      const json = await res.json()
+      
+      const dayData = (json.schedules || []).find((s: any) => s.date === selectedDate)
+      
+      const mappedSchedules = dayData ? dayData.casts.map((c: any) => ({
+        id: `${selectedDate}-${c.id}`,
+        girl_id: String(c.cast_id),
+        brand_id: brandId || '1',
+        date: selectedDate,
+        start_time: c.start_time,
+        end_time: c.end_time,
+        status: c.status,
+        schedule_text: c.schedule_text || '',
+        girl: {
+          id: String(c.cast_id),
+          name: c.name,
+          images: [c.idol_image_path || c.image].filter(Boolean),
+          brand_id: brandId || '1',
+          is_active: true,
+          created_at: '',
+          updated_at: ''
+        }
+      })) : []
+      
+      setSchedules(mappedSchedules as Schedule[])
+    } catch (e) {
+      console.error(e)
+      setSchedules([])
+    }
     setLoading(false)
   }, [brandId, selectedDate, today, initialSchedules])
 
