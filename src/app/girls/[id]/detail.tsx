@@ -451,6 +451,7 @@ export default function MitsuGirlDetail({
             </>
           )}
 
+          <div style={{ display: 'none' }}>
           {/* コース・料金 */}
           <div className="w-10 h-px bg-[#b8860b]/30 my-8" />
           <h3
@@ -549,6 +550,8 @@ export default function MitsuGirlDetail({
                 ))}
               </div>
             </div>
+          </div>
+
           </div>
 
           {/* Weekly Schedule */}
