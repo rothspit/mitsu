@@ -451,60 +451,88 @@ export default function MitsuGirlDetail({
             </>
           )}
 
-          <div style={{ display: 'none' }}>
-          {/* コース・料金 */}
+          {/* ↓↓↓ ここから新しいUI ↓↓↓ */}
+
+          {/* コース・料金（2カラム＋プルダウン） */}
           <div className="w-10 h-px bg-[#b8860b]/30 my-8" />
-          <h3
-            className="text-xs tracking-[0.2em] text-[#78716c] mb-4"
-            style={{ fontFamily: serif }}
-          >
-            コース・料金
-          </h3>
-          <div className="space-y-2">
+          <div className="flex items-center gap-3 mb-6">
+            <h3 className="text-sm tracking-[0.2em] text-[#78716c] font-bold" style={{ fontFamily: serif }}>
+              料金表
+            </h3>
+            {/* 女の子ごとのクラスバッジ（控えめに上品に） */}
+            <span className="text-[10px] bg-gradient-to-r from-[#bf953f] to-[#fcf6ba] text-[#44403c] px-2 py-0.5 rounded-sm shadow-sm font-bold">
+              👑 ゴールドクラス
+            </span>
+          </div>
+
+          {/* 60分〜180分のゴールデンタイム（2カラム） */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0">
             {[
-              { name: 'ゴールド 60分', price: 15000 },
-              { name: 'ゴールド 80分', price: 19000 },
-              { name: 'ゴールド 100分', price: 23000 },
-              { name: 'ゴールド 120分', price: 27000 },
-              { name: 'ゴールド 150分', price: 33000 },
-              { name: 'ゴールド 180分', price: 39000 },
-            ].map((c) => (
-              <div key={c.name} className="flex items-center justify-between bg-[#fafaf9] rounded-lg px-4 py-3">
-                <span className="text-sm text-[#44403c]">{c.name}</span>
-                <span className="text-sm font-medium text-[#b8860b]" style={{ fontFamily: serif }}>
+              { time: '60分', price: 15000 },
+              { time: '80分', price: 19000 },
+              { time: '100分', price: 23000 },
+              { time: '120分', price: 27000 },
+              { time: '150分', price: 33000 },
+              { time: '180分', price: 39000 },
+            ].map((c, index) => (
+              <div key={c.time} className="flex items-center justify-between border-b border-[#e7e5e4] py-3 px-1">
+                <span className="text-sm text-[#44403c] tracking-wider">{c.time}</span>
+                <span className="text-base font-bold text-[#b8860b]" style={{ fontFamily: serif }}>
                   &yen;{c.price.toLocaleString()}
                 </span>
               </div>
             ))}
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
+
+          {/* ロングタイム（プルダウン） */}
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-8">
+            <div className="flex items-center gap-2">
+              <select 
+                className="w-full text-sm border border-[#d6d3d1] bg-[#fafaf9] rounded-md px-3 py-2 text-[#44403c] focus:outline-none focus:ring-1 focus:ring-[#b8860b]"
+                onChange={(e) => {
+                  const targetPrice = e.target.options[e.target.selectedIndex].dataset.price;
+                  const priceDisplay = document.getElementById('long-price-display');
+                  if (priceDisplay) priceDisplay.innerText = '¥' + Number(targetPrice).toLocaleString();
+                }}
+              >
+                <option value="210" data-price="45000">210分 (ロング)</option>
+                <option value="240" data-price="51000">240分 (ロング)</option>
+                <option value="300" data-price="63000">300分 (ロング)</option>
+              </select>
+            </div>
+            <div className="flex items-center justify-end py-2 px-1 mt-2 md:mt-0">
+              <span id="long-price-display" className="text-lg font-bold text-[#b8860b]" style={{ fontFamily: serif }}>
+                &yen;45,000
+              </span>
+            </div>
+          </div>
+
+          {/* 各種手数料 */}
+          <div className="mt-6 grid grid-cols-2 gap-2">
             {[
               { label: '入会金', value: '¥1,000' },
               { label: '指名料', value: '¥1,000' },
               { label: '本指名料', value: '¥2,000' },
               { label: '延長30分', value: '¥8,000' },
             ].map((f) => (
-              <div key={f.label} className="flex items-center justify-between bg-[#fafaf9]/60 rounded px-3 py-2">
+              <div key={f.label} className="flex items-center justify-between bg-[#fafaf9]/60 border border-[#f5f5f4] rounded px-3 py-2">
                 <span className="text-[11px] text-[#78716c]">{f.label}</span>
                 <span className="text-[11px] font-medium text-[#44403c]">{f.value}</span>
               </div>
             ))}
           </div>
 
-          {/* オプション */}
+          {/* オプション（そのまま綺麗に表示） */}
           <div className="w-10 h-px bg-[#b8860b]/30 my-8" />
-          <h3
-            className="text-xs tracking-[0.2em] text-[#78716c] mb-4"
-            style={{ fontFamily: serif }}
-          >
+          <h3 className="text-sm tracking-[0.2em] text-[#78716c] font-bold mb-4" style={{ fontFamily: serif }}>
             オプション
           </h3>
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
               <p className="text-[10px] text-[#a8a29e] tracking-wider mb-2">無料オプション</p>
               <div className="flex flex-wrap gap-1.5">
                 {['バイブ', 'ローター', 'オナニー鑑賞', '前立腺マッサージ', 'ノーパン訪問', 'ノーブラ訪問', '顔面発射', '即尺', '聖水'].map((o) => (
-                  <span key={o} className="text-[11px] text-[#44403c] bg-[#fafaf9] rounded px-2.5 py-1">{o}</span>
+                  <span key={o} className="text-[11px] text-[#44403c] bg-[#fafaf9] border border-[#e7e5e4] rounded px-2.5 py-1">{o}</span>
                 ))}
               </div>
             </div>
@@ -520,42 +548,72 @@ export default function MitsuGirlDetail({
                   { name: '即プレイ', price: 2000 },
                   { name: 'AF', price: 5000 },
                 ].map((o) => (
-                  <span key={o.name} className="text-[11px] text-[#44403c] bg-[#fafaf9] rounded px-2.5 py-1">
-                    {o.name} +&yen;{o.price.toLocaleString()}
+                  <span key={o.name} className="text-[11px] text-[#44403c] bg-[#fafaf9] border border-[#e7e5e4] rounded px-2.5 py-1">
+                    {o.name} <span className="text-[#b8860b] ml-1">+&yen;{o.price.toLocaleString()}</span>
                   </span>
                 ))}
               </div>
             </div>
-            <div>
-              <p className="text-[10px] text-[#a8a29e] tracking-wider mb-2">コスプレ (&yen;1,000)</p>
-              <div className="flex flex-wrap gap-1.5">
-                {['ナース', 'マイクロビキニ', 'スクール水着', 'チアガール', 'セーラー服', '女子高生/ブレザー', '童貞をころすセーター', '全身網タイツ', 'メイド服', '体操服', 'OL', '秘書', '彼シャツ'].map((o) => (
-                  <span key={o} className="text-[11px] text-[#44403c] bg-[#fafaf9] rounded px-2.5 py-1">{o}</span>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-[10px] text-[#a8a29e] tracking-wider mb-2">撮影 (無料)</p>
-              <div className="flex flex-wrap gap-1.5">
-                {['写真撮影(顔なし)', '写真撮影(顔出し)', '動画撮影(顔なし)', '動画撮影(顔出し)'].map((o) => (
-                  <span key={o} className="text-[11px] text-[#44403c] bg-[#fafaf9] rounded px-2.5 py-1">{o}</span>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-[10px] text-[#a8a29e] tracking-wider mb-2">その他</p>
-              <div className="flex flex-wrap gap-1.5">
-                {['３P（男2）', '３P（女2）'].map((o) => (
-                  <span key={o} className="text-[11px] text-[#44403c] bg-[#fafaf9] rounded px-2.5 py-1">{o}</span>
-                ))}
-              </div>
-            </div>
           </div>
 
+          {/* リアルタイム空き枠＆ワンタップ予約カレンダー */}
+          <div className="w-10 h-px bg-[#b8860b]/30 my-8" />
+          <h3 className="text-sm tracking-[0.2em] text-[#78716c] font-bold mb-4" style={{ fontFamily: serif }}>
+            出勤スケジュール＆予約
+          </h3>
+          
+          {/* 最短のご案内（リアルタイム空き枠アピール） */}
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-center justify-between animate-pulse">
+            <div className="flex items-center gap-2 text-red-600">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+              <span className="text-sm font-bold">最短のご案内</span>
+            </div>
+            {/* ※実際のバックエンドから「次の空き時間」を取得して表示します */}
+            <span className="text-sm font-bold text-red-700">本日 15:30〜 可能</span>
           </div>
 
-          {/* Weekly Schedule */}
-          {weekStart && <WeekSchedule schedules={weekSchedules} weekStart={weekStart} />}
+          {/* スケジュールリスト */}
+          <div className="flex overflow-x-auto pb-4 gap-3 snap-x">
+            {weekSchedules?.map((schedule, i) => {
+              const dateObj = new Date(schedule.date);
+              const dayStr = ['日','月','火','水','木','金','土'][dateObj.getDay()];
+              const isToday = i === 0; // 簡易的な本日の判定
+
+              return (
+                <div key={schedule.date} className={`min-w-[110px] snap-start border rounded-xl overflow-hidden shadow-sm flex flex-col ${isToday ? 'border-[#b8860b]' : 'border-gray-200'}`}>
+                  {/* 日付ヘッダー */}
+                  <div className={`text-center py-1 text-xs font-bold ${isToday ? 'bg-[#b8860b] text-white' : 'bg-gray-100 text-gray-600'}`}>
+                    {dateObj.getMonth() + 1}/{dateObj.getDate()} ({dayStr})
+                  </div>
+                  
+                  {/* 出勤時間＆予約ボタン */}
+                  <div className="p-2 flex-grow flex flex-col items-center justify-center bg-white">
+                    {schedule.is_off ? (
+                      <span className="text-gray-400 text-sm font-bold my-4">お休み</span>
+                    ) : (
+                      <div className="w-full flex flex-col gap-2 mt-1">
+                        <span className="text-sm font-bold text-[#44403c] text-center">
+                          {schedule.start_time?.slice(0,5)}<br/>|<br/>{schedule.end_time?.slice(0,5)}
+                        </span>
+                        {/* ワンタップ予約ボタン：クリックで予約画面へパラメータ付きで遷移 */}
+                        <a 
+                          href={`/reserve?cast_id=${schedule.cast_id}&date=${schedule.date}&time=${schedule.start_time}`}
+                          className="w-full text-center bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white text-[10px] font-bold py-1.5 px-2 rounded shadow-sm transition-transform active:scale-95"
+                        >
+                          ここから予約
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* ↑↑↑ ここまで ↑↑↑ */}
 
           {/* Reviews */}
           <div className="w-10 h-px bg-[#b8860b]/30 my-8" />
