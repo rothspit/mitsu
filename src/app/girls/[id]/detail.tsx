@@ -451,69 +451,121 @@ export default function MitsuGirlDetail({
             </>
           )}
 
-          {/* ↓↓↓ ここから新しいUI ↓↓↓ */}
-
-          {/* コース・料金（2カラム＋プルダウン） */}
+          {/* ↓↓↓ ここから新しいUI（料金表＆オプション） ↓↓↓ */}
+          
+          {/* --- 1. 料金表エリア --- */}
           <div className="w-10 h-px bg-[#b8860b]/30 my-8" />
           <div className="flex items-center gap-3 mb-6">
             <h3 className="text-sm tracking-[0.2em] text-[#78716c] font-bold" style={{ fontFamily: serif }}>
               料金表
             </h3>
-            {/* 女の子ごとのクラスバッジ（控えめに上品に） */}
-            <span className="text-[10px] bg-gradient-to-r from-[#bf953f] to-[#fcf6ba] text-[#44403c] px-2 py-0.5 rounded-sm shadow-sm font-bold">
-              👑 ゴールドクラス
-            </span>
-          </div>
-
-          {/* 60分〜180分のゴールデンタイム（2カラム） */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0">
-            {[
-              { time: '60分', price: 15000 },
-              { time: '80分', price: 19000 },
-              { time: '100分', price: 23000 },
-              { time: '120分', price: 27000 },
-              { time: '150分', price: 33000 },
-              { time: '180分', price: 39000 },
-            ].map((c, index) => (
-              <div key={c.time} className="flex items-center justify-between border-b border-[#e7e5e4] py-3 px-1">
-                <span className="text-sm text-[#44403c] tracking-wider">{c.time}</span>
-                <span className="text-base font-bold text-[#b8860b]" style={{ fontFamily: serif }}>
-                  &yen;{c.price.toLocaleString()}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* ロングタイム（プルダウン） */}
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-8">
-            <div className="flex items-center gap-2">
-              <select 
-                className="w-full text-sm border border-[#d6d3d1] bg-[#fafaf9] rounded-md px-3 py-2 text-[#44403c] focus:outline-none focus:ring-1 focus:ring-[#b8860b]"
-                onChange={(e) => {
-                  const targetPrice = e.target.options[e.target.selectedIndex].dataset.price;
-                  const priceDisplay = document.getElementById('long-price-display');
-                  if (priceDisplay) priceDisplay.innerText = '¥' + Number(targetPrice).toLocaleString();
-                }}
-              >
-                <option value="210" data-price="45000">210分 (ロング)</option>
-                <option value="240" data-price="51000">240分 (ロング)</option>
-                <option value="300" data-price="63000">300分 (ロング)</option>
-              </select>
-            </div>
-            <div className="flex items-center justify-end py-2 px-1 mt-2 md:mt-0">
-              <span id="long-price-display" className="text-lg font-bold text-[#b8860b]" style={{ fontFamily: serif }}>
-                &yen;45,000
+            {cast?.course_type && (
+              <span className="text-[10px] bg-gradient-to-r from-[#bf953f] to-[#fcf6ba] text-[#44403c] px-2 py-0.5 rounded-sm shadow-sm font-bold">
+                {cast.course_type === 'platinum' ? '💎 プラチナクラス' : 
+                 cast.course_type === 'gold' ? '👑 ゴールドクラス' : '✨ スタンダードクラス'}
               </span>
-            </div>
+            )}
           </div>
+
+          {(() => {
+            const courseMaster: Record<string, any> = {
+              standard: {
+                prices: [
+                  { time: '60分', price: 12000 }, { time: '80分', price: 16000 },
+                  { time: '100分', price: 20000 }, { time: '120分', price: 24000 },
+                  { time: '150分', price: 30000 }, { time: '180分', price: 36000 },
+                ],
+                longPrices: [
+                  { time: '210', label: '210分 (ロング)', price: 42000 },
+                  { time: '240', label: '240分 (ロング)', price: 48000 },
+                  { time: '300', label: '300分 (ロング)', price: 60000 },
+                ]
+              },
+              gold: {
+                prices: [
+                  { time: '60分', price: 15000 }, { time: '80分', price: 19000 },
+                  { time: '100分', price: 23000 }, { time: '120分', price: 27000 },
+                  { time: '150分', price: 33000 }, { time: '180分', price: 39000 },
+                ],
+                longPrices: [
+                  { time: '210', label: '210分 (ロング)', price: 45000 },
+                  { time: '240', label: '240分 (ロング)', price: 51000 },
+                  { time: '300', label: '300分 (ロング)', price: 63000 },
+                ]
+              },
+              platinum: {
+                prices: [
+                  { time: '60分', price: 18000 }, { time: '80分', price: 23000 },
+                  { time: '100分', price: 28000 }, { time: '120分', price: 33000 },
+                  { time: '150分', price: 40000 }, { time: '180分', price: 48000 },
+                ],
+                longPrices: [
+                  { time: '210', label: '210分 (ロング)', price: 56000 },
+                  { time: '240', label: '240分 (ロング)', price: 64000 },
+                  { time: '300', label: '300分 (ロング)', price: 80000 },
+                ]
+              }
+            };
+
+            const activeCourse = cast?.course_type ? courseMaster[cast.course_type] : null;
+
+            // ★ データが空（未設定）の場合は「電話で確認」を表示
+            if (!activeCourse) {
+              return (
+                <div className="py-10 text-center border border-dashed border-[#d6d3d1] rounded-lg bg-[#fafaf9] mb-8">
+                  <p className="text-sm text-[#78716c] tracking-widest leading-relaxed" style={{ fontFamily: serif }}>
+                    現在コース設定中です。<br className="md:hidden" />
+                    詳細な料金につきましては、<br className="md:hidden" />お電話にてお問い合わせください。
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0">
+                  {activeCourse.prices.map((c: any) => (
+                    <div key={c.time} className="flex items-center justify-between border-b border-[#e7e5e4] py-3 px-1">
+                      <span className="text-sm text-[#44403c] tracking-wider">{c.time}</span>
+                      <span className="text-base font-bold text-[#b8860b]" style={{ fontFamily: serif }}>
+                        &yen;{c.price.toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                  <div className="flex items-center gap-2">
+                    <select 
+                      className="w-full text-sm border border-[#d6d3d1] bg-[#fafaf9] rounded-md px-3 py-2 text-[#44403c] focus:outline-none focus:ring-1 focus:ring-[#b8860b]"
+                      onChange={(e) => {
+                        const targetPrice = e.target.options[e.target.selectedIndex].dataset.price;
+                        const priceDisplay = document.getElementById('long-price-display');
+                        if (priceDisplay) priceDisplay.innerText = '¥' + Number(targetPrice).toLocaleString();
+                      }}
+                    >
+                      {activeCourse.longPrices.map((lp: any) => (
+                        <option key={lp.time} value={lp.time} data-price={lp.price}>
+                          {lp.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center justify-end py-2 px-1 mt-2 md:mt-0">
+                    <span id="long-price-display" className="text-lg font-bold text-[#b8860b]" style={{ fontFamily: serif }}>
+                      &yen;{activeCourse.longPrices[0].price.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
 
           {/* 各種手数料 */}
           <div className="mt-6 grid grid-cols-2 gap-2">
             {[
-              { label: '入会金', value: '¥1,000' },
-              { label: '指名料', value: '¥1,000' },
-              { label: '本指名料', value: '¥2,000' },
-              { label: '延長30分', value: '¥8,000' },
+              { label: '入会金', value: '¥1,000' }, { label: '指名料', value: '¥1,000' },
+              { label: '本指名料', value: '¥2,000' }, { label: '延長30分', value: '¥8,000' },
             ].map((f) => (
               <div key={f.label} className="flex items-center justify-between bg-[#fafaf9]/60 border border-[#f5f5f4] rounded px-3 py-2">
                 <span className="text-[11px] text-[#78716c]">{f.label}</span>
@@ -522,39 +574,28 @@ export default function MitsuGirlDetail({
             ))}
           </div>
 
-          {/* オプション（そのまま綺麗に表示） */}
+          {/* --- 2. オプションエリア（CRM連動） --- */}
           <div className="w-10 h-px bg-[#b8860b]/30 my-8" />
           <h3 className="text-sm tracking-[0.2em] text-[#78716c] font-bold mb-4" style={{ fontFamily: serif }}>
-            オプション
+            対応可能プレイ・オプション
           </h3>
-          <div className="space-y-5">
-            <div>
-              <p className="text-[10px] text-[#a8a29e] tracking-wider mb-2">無料オプション</p>
-              <div className="flex flex-wrap gap-1.5">
-                {['バイブ', 'ローター', 'オナニー鑑賞', '前立腺マッサージ', 'ノーパン訪問', 'ノーブラ訪問', '顔面発射', '即尺', '聖水'].map((o) => (
-                  <span key={o} className="text-[11px] text-[#44403c] bg-[#fafaf9] border border-[#e7e5e4] rounded px-2.5 py-1">{o}</span>
-                ))}
-              </div>
+          
+          {/* ★ CRMから取得した cast.play_options などの配列を展開 */}
+          {(!cast?.play_options || cast.play_options.length === 0) ? (
+            <div className="py-6 text-center border border-dashed border-[#d6d3d1] rounded-lg bg-[#fafaf9]">
+              <p className="text-xs text-[#78716c] tracking-widest" style={{ fontFamily: serif }}>
+                オプション詳細は店舗までお問い合わせください。
+              </p>
             </div>
-            <div>
-              <p className="text-[10px] text-[#a8a29e] tracking-wider mb-2">有料オプション</p>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { name: 'パンスト(ベージュ・黒)', price: 2000 },
-                  { name: '電マ', price: 2000 },
-                  { name: 'とびっこ', price: 2000 },
-                  { name: 'パンティ持ち帰り', price: 2000 },
-                  { name: 'ごっくん', price: 2000 },
-                  { name: '即プレイ', price: 2000 },
-                  { name: 'AF', price: 5000 },
-                ].map((o) => (
-                  <span key={o.name} className="text-[11px] text-[#44403c] bg-[#fafaf9] border border-[#e7e5e4] rounded px-2.5 py-1">
-                    {o.name} <span className="text-[#b8860b] ml-1">+&yen;{o.price.toLocaleString()}</span>
-                  </span>
-                ))}
-              </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {cast.play_options.map((option: string, idx: number) => (
+                <span key={idx} className="text-[11px] text-[#44403c] bg-[#fafaf9] border border-[#e7e5e4] rounded px-3 py-1.5 shadow-sm">
+                  {option}
+                </span>
+              ))}
             </div>
-          </div>
+          )}
 
           {/* リアルタイム空き枠＆ワンタップ予約カレンダー */}
           <div className="w-10 h-px bg-[#b8860b]/30 my-8" />
