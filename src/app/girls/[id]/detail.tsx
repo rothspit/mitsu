@@ -639,9 +639,9 @@ export default function MitsuGirlDetail({
                         <span className="text-sm font-bold text-[#44403c] text-center">
                           {schedule.start_time?.slice(0,5)}<br/>|<br/>{schedule.end_time?.slice(0,5)}
                         </span>
-                        {/* ワンタップ予約ボタン：クリックで予約画面へパラメータ付きで遷移 */}
+                        {/* ワンタップ予約ボタン：クリックで予約画面へパラメータ付きで遷移（※将来的にはログイン会員用予約へ変更予定） */}
                         <a 
-                          href={`/reserve?cast_id=${schedule.cast_id}&date=${schedule.date}&time=${schedule.start_time}`}
+                          href={brand.phone ? `tel:${brand.phone}` : "#"}
                           className="w-full text-center bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white text-[10px] font-bold py-1.5 px-2 rounded shadow-sm transition-transform active:scale-95"
                         >
                           ここから予約
