@@ -459,10 +459,10 @@ export default function MitsuGirlDetail({
             <h3 className="text-sm tracking-[0.2em] text-[#78716c] font-bold" style={{ fontFamily: serif }}>
               料金表
             </h3>
-            {cast?.course_type && (
+            {extra?.course_type && (
               <span className="text-[10px] bg-gradient-to-r from-[#bf953f] to-[#fcf6ba] text-[#44403c] px-2 py-0.5 rounded-sm shadow-sm font-bold">
-                {cast.course_type === 'platinum' ? '💎 プラチナクラス' : 
-                 cast.course_type === 'gold' ? '👑 ゴールドクラス' : '✨ スタンダードクラス'}
+                {extra.course_type === 'platinum' ? '💎 プラチナクラス' : 
+                 extra.course_type === 'gold' ? '👑 ゴールドクラス' : '✨ スタンダードクラス'}
               </span>
             )}
           </div>
@@ -507,7 +507,7 @@ export default function MitsuGirlDetail({
               }
             };
 
-            const activeCourse = cast?.course_type ? courseMaster[cast.course_type] : null;
+            const activeCourse = extra?.course_type ? courseMaster[extra.course_type] : null;
 
             // ★ データが空（未設定）の場合は「電話で確認」を表示
             if (!activeCourse) {
@@ -580,8 +580,8 @@ export default function MitsuGirlDetail({
             対応可能プレイ・オプション
           </h3>
           
-          {/* ★ CRMから取得した cast.play_options などの配列を展開 */}
-          {(!cast?.play_options || cast.play_options.length === 0) ? (
+          {/* ★ CRMから取得した extra.play_options などの配列を展開 */}
+          {(!extra?.play_options || extra.play_options.length === 0) ? (
             <div className="py-6 text-center border border-dashed border-[#d6d3d1] rounded-lg bg-[#fafaf9]">
               <p className="text-xs text-[#78716c] tracking-widest" style={{ fontFamily: serif }}>
                 オプション詳細は店舗までお問い合わせください。
@@ -589,7 +589,7 @@ export default function MitsuGirlDetail({
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {cast.play_options.map((option: string, idx: number) => (
+              {extra.play_options.map((option: string, idx: number) => (
                 <span key={idx} className="text-[11px] text-[#44403c] bg-[#fafaf9] border border-[#e7e5e4] rounded px-3 py-1.5 shadow-sm">
                   {option}
                 </span>
