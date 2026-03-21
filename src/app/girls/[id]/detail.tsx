@@ -609,18 +609,33 @@ export default function MitsuGirlDetail({
               if (!schedules || schedules.length === 0) return "スケジュール確認中";
 
               const now = new Date();
-              // JSTでの今日の日付（YYYY-MM-DD）と現在時刻（HH:MM）を取得
-              const todayStr = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }); 
-              // サーバーのタイムゾーンに依存しないよう、明示的にAsia/Tokyoの時間を生成
+              const todayStr = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
               const currentTimeStr = now.toLocaleTimeString('ja-JP', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit' });
+
+              // 文字列の時刻を「分（数値）」に変換するヘルパー関数
+              const timeToMins = (timeStr: string) => {
+                if (!timeStr) return 0;
+                const [h, m] = timeStr.split(':').map(Number);
+                return h * 60 + (m || 0);
+              };
+
+              const currentMins = timeToMins(currentTimeStr);
 
               for (const s of schedules) {
                 if (s.is_off) continue;
-                if (s.is_full) continue; // ★満了の日はスキップして次の空き枠を探す
+                if (s.is_full) continue;
+
+                let startMins = timeToMins(s.start_time);
+                let endMins = timeToMins(s.end_time);
+
+                // ★日またぎ（翌朝終了）の対応：終了が開始より前なら、24時間(1440分)を足す
+                if (endMins <= startMins) {
+                  endMins += 24 * 60;
+                }
 
                 if (s.date === todayStr) {
-                  if (s.end_time && currentTimeStr < s.end_time) {
-                    if (s.start_time && currentTimeStr < s.start_time) {
+                  if (currentMins < endMins) {
+                    if (currentMins < startMins) {
                       return `本日 ${s.start_time.slice(0,5)}〜 ご案内可能`;
                     } else {
                       return `🔥 本日 只今すぐご案内可能！`;
@@ -639,7 +654,7 @@ export default function MitsuGirlDetail({
                   }
                 }
               }
-              return "🈵 本日はご予約満了です"; // 全て満了や休みの場合
+              return "🈵 本日はご予約満了です";
             };
 
             const nextAvailableText = getNextAvailableText(weekSchedules || []);
