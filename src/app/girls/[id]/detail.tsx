@@ -603,56 +603,111 @@ export default function MitsuGirlDetail({
             出勤スケジュール＆予約
           </h3>
           
-          {/* 最短のご案内（リアルタイム空き枠アピール） */}
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-center justify-between animate-pulse">
-            <div className="flex items-center gap-2 text-red-600">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-              </span>
-              <span className="text-sm font-bold">最短のご案内</span>
-            </div>
-            {/* ※実際のバックエンドから「次の空き時間」を取得して表示します */}
-            <span className="text-sm font-bold text-red-700">本日 15:30〜 可能</span>
-          </div>
+          {(() => {
+            // --- ここから追加・更新 ---
+            const getNextAvailableText = (schedules: any[]) => {
+              if (!schedules || schedules.length === 0) return "スケジュール確認中";
 
-          {/* スケジュールリスト */}
-          <div className="flex overflow-x-auto pb-4 gap-3 snap-x">
-            {weekSchedules?.map((schedule, i) => {
-              const dateObj = new Date(schedule.date);
-              const dayStr = ['日','月','火','水','木','金','土'][dateObj.getDay()];
-              const isToday = i === 0; // 簡易的な本日の判定
+              const now = new Date();
+              // JSTでの今日の日付（YYYY-MM-DD）と現在時刻（HH:MM）を取得
+              const todayStr = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }); 
+              // サーバーのタイムゾーンに依存しないよう、明示的にAsia/Tokyoの時間を生成
+              const currentTimeStr = now.toLocaleTimeString('ja-JP', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit' });
 
-              return (
-                <div key={schedule.date} className={`min-w-[110px] snap-start border rounded-xl overflow-hidden shadow-sm flex flex-col ${isToday ? 'border-[#b8860b]' : 'border-gray-200'}`}>
-                  {/* 日付ヘッダー */}
-                  <div className={`text-center py-1 text-xs font-bold ${isToday ? 'bg-[#b8860b] text-white' : 'bg-gray-100 text-gray-600'}`}>
-                    {dateObj.getMonth() + 1}/{dateObj.getDate()} ({dayStr})
+              for (const s of schedules) {
+                if (s.is_off) continue;
+                if (s.is_full) continue; // ★満了の日はスキップして次の空き枠を探す
+
+                if (s.date === todayStr) {
+                  if (s.end_time && currentTimeStr < s.end_time) {
+                    if (s.start_time && currentTimeStr < s.start_time) {
+                      return `本日 ${s.start_time.slice(0,5)}〜 ご案内可能`;
+                    } else {
+                      return `🔥 本日 只今すぐご案内可能！`;
+                    }
+                  }
+                } else if (s.date > todayStr) {
+                  const dateObj = new Date(s.date);
+                  const tomorrow = new Date(now);
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  const tomorrowStr = tomorrow.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
+
+                  if (s.date === tomorrowStr) {
+                    return `明日 ${s.start_time?.slice(0,5)}〜 ご案内可能`;
+                  } else {
+                    return `${dateObj.getMonth() + 1}/${dateObj.getDate()} ${s.start_time?.slice(0,5)}〜 ご案内可能`;
+                  }
+                }
+              }
+              return "🈵 本日はご予約満了です"; // 全て満了や休みの場合
+            };
+
+            const nextAvailableText = getNextAvailableText(weekSchedules || []);
+            // --- ここまで追加・更新 ---
+
+            return (
+              <>
+                {/* 最短のご案内（リアルタイム空き枠アピール） */}
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-center justify-between animate-pulse">
+                  <div className="flex items-center gap-2 text-red-600">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                    </span>
+                    <span className="text-sm font-bold">最短のご案内</span>
                   </div>
-                  
-                  {/* 出勤時間＆予約ボタン */}
-                  <div className="p-2 flex-grow flex flex-col items-center justify-center bg-white">
-                    {schedule.is_off ? (
-                      <span className="text-gray-400 text-sm font-bold my-4">お休み</span>
-                    ) : (
-                      <div className="w-full flex flex-col gap-2 mt-1">
-                        <span className="text-sm font-bold text-[#44403c] text-center">
-                          {schedule.start_time?.slice(0,5)}<br/>|<br/>{schedule.end_time?.slice(0,5)}
-                        </span>
-                        {/* ワンタップ予約ボタン：クリックで予約画面へパラメータ付きで遷移（※将来的にはログイン会員用予約へ変更予定） */}
-                        <a 
-                          href={brand.phone ? `tel:${brand.phone}` : "#"}
-                          className="w-full text-center bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white text-[10px] font-bold py-1.5 px-2 rounded shadow-sm transition-transform active:scale-95"
-                        >
-                          ここから予約
-                        </a>
-                      </div>
-                    )}
-                  </div>
+                  <span className="text-sm font-bold text-red-700">{nextAvailableText}</span>
                 </div>
-              );
-            })}
-          </div>
+
+                {/* スケジュールリスト */}
+                <div className="flex overflow-x-auto pb-4 gap-3 snap-x">
+                  {weekSchedules?.map((schedule: any, i: number) => {
+                    const dateObj = new Date(schedule.date);
+                    const dayStr = ['日','月','火','水','木','金','土'][dateObj.getDay()];
+                    const isToday = i === 0;
+
+                    return (
+                      <div key={schedule.date} className={`min-w-[110px] snap-start border rounded-xl overflow-hidden shadow-sm flex flex-col ${isToday ? 'border-[#b8860b]' : 'border-gray-200'}`}>
+                        <div className={`text-center py-1 text-xs font-bold ${isToday ? 'bg-[#b8860b] text-white' : 'bg-gray-100 text-gray-600'}`}>
+                          {dateObj.getMonth() + 1}/{dateObj.getDate()} ({dayStr})
+                        </div>
+                        
+                        <div className="p-2 flex-grow flex flex-col items-center justify-center bg-white">
+                          {schedule.is_off ? (
+                            <span className="text-gray-400 text-sm font-bold my-4">お休み</span>
+                          ) : schedule.is_full ? (
+                            /* ★ 満了の場合のUI（グレーアウト） */
+                            <div className="w-full flex flex-col gap-2 mt-1">
+                              <span className="text-sm font-bold text-gray-400 text-center line-through decoration-gray-300">
+                                {schedule.start_time?.slice(0,5)}<br/>|<br/>{schedule.end_time?.slice(0,5)}
+                              </span>
+                              <button disabled className="w-full text-center bg-gray-400 text-white text-[10px] font-bold py-1.5 px-2 rounded shadow-sm cursor-not-allowed">
+                                🈵 ご予約満了
+                              </button>
+                            </div>
+                          ) : (
+                            /* 空きがある場合のUI（赤い予約ボタン） */
+                            <div className="w-full flex flex-col gap-2 mt-1">
+                              <span className="text-sm font-bold text-[#44403c] text-center">
+                                {schedule.start_time?.slice(0,5)}<br/>|<br/>{schedule.end_time?.slice(0,5)}
+                              </span>
+                              {/* ワンタップ電話予約ボタン（将来的にログイン予約へ変更予定） */}
+                              <a 
+                                href={brand?.phone ? `tel:${brand.phone}` : "#"}
+                                className="w-full text-center bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white text-[10px] font-bold py-1.5 px-2 rounded shadow-sm transition-transform active:scale-95"
+                              >
+                                ここから予約
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            );
+          })()}
           
           {/* ↑↑↑ ここまで ↑↑↑ */}
 
