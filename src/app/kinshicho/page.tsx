@@ -5,25 +5,18 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getGirlImageUrl } from '@/lib/brand/image-utils'
 import type { Girl, Schedule } from '@/lib/brand/brand-queries'
+import { businessDate } from '@/lib/business-date'
+import StoreAreaNav from '@/components/StoreAreaNav'
+import OtherAreaLinks from '@/components/OtherAreaLinks'
 
 const serif = "var(--font-noto-serif), 'Noto Serif JP', serif"
 const BRAND_SLUG = 'hitomitsu'
+/** 錦糸町はエリア別スケジュール（管理画面で錦糸町に登録＝選択された行のみ表示） */
+const AREA_SLUG = 'kinshicho'
 
 // ============================================
-// 朝8時基準の日付ユーティリティ
+// 日付ユーティリティ（営業日の今日は @/lib/business-date）
 // ============================================
-
-function jstNow(): Date {
-  return new Date(Date.now() + 9 * 60 * 60 * 1000)
-}
-
-function businessDate(): string {
-  const now = jstNow()
-  if (now.getUTCHours() < 8) {
-    now.setUTCDate(now.getUTCDate() - 1)
-  }
-  return now.toISOString().slice(0, 10)
-}
 
 function addDays(dateStr: string, n: number): string {
   const d = new Date(dateStr + 'T00:00:00Z')
@@ -31,12 +24,8 @@ function addDays(dateStr: string, n: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-function getWeekDates(baseDate: string): string[] {
-  const d = new Date(baseDate + 'T00:00:00Z')
-  const dow = d.getUTCDay()
-  const mondayOffset = dow === 0 ? -6 : 1 - dow
-  const monday = addDays(baseDate, mondayOffset)
-  return Array.from({ length: 7 }, (_, i) => addDays(monday, i))
+function getRollingDates(startDate: string, days = 7): string[] {
+  return Array.from({ length: days }, (_, i) => addDays(startDate, i))
 }
 
 const DOW_LABELS = ['日', '月', '火', '水', '木', '金', '土']
@@ -55,6 +44,15 @@ function formatTime(t: string | null | undefined): string {
   const hh = t.slice(0, 5)
   const h = parseInt(hh.slice(0, 2), 10)
   return h < 7 ? `翌${hh}` : hh
+}
+
+/** 備考・出勤テキストから「西船橋店待機→錦糸町エリア」系か推定（管理でキーワードを入れて識別） */
+function isNishifunaWaitForKinshicho(schedule: Schedule): boolean {
+  const g = schedule.girl as Record<string, unknown> | undefined
+  const blob = [schedule.comment, schedule.schedule_text, g?.manager_comment, g?.memo]
+    .filter((x): x is string => typeof x === 'string' && x.length > 0)
+    .join('\n')
+  return /西船待機|西船橋店|西船より|【西船】|西船橋.*待機|西船.*待機/i.test(blob)
 }
 
 // ============================================
@@ -110,6 +108,7 @@ function getCalendarWeeks(year: number, month: number): (string | null)[][] {
 function CastCard({ schedule }: { schedule: Schedule }) {
   const girl = schedule.girl as Girl | undefined
   const imageUrl = getGirlImageUrl(girl)
+  const nishifunaWait = isNishifunaWaitForKinshicho(schedule)
 
   return (
     <Link
@@ -127,6 +126,11 @@ function CastCard({ schedule }: { schedule: Schedule }) {
           <div className="w-full h-full flex items-center justify-center">
             <span className="text-4xl opacity-10">👤</span>
           </div>
+        )}
+        {nishifunaWait && (
+          <span className="absolute top-2 right-2 z-[1] max-w-[calc(100%-0.5rem)] text-[8px] font-bold leading-tight text-amber-900 bg-amber-100/95 border border-amber-300/80 rounded px-1.5 py-0.5 shadow-sm text-right">
+            西船待機・別途交通費
+          </span>
         )}
         {schedule.schedule_text && (
           <span className="absolute top-2 left-2 text-[10px] text-white bg-[#b8860b] rounded-full px-2.5 py-0.5 shadow-sm">
@@ -156,12 +160,15 @@ export default function KinshichoSchedulePage() {
   const today = useMemo(() => businessDate(), [])
 
   const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
-  const initialDate = params?.get('date') || today
+  const initialDateRaw = params?.get('date') || today
+  const initialDate = initialDateRaw < today ? today : initialDateRaw
 
   const [viewMode, setViewMode] = useState<ViewMode>('week')
   const [selectedDate, setSelectedDate] = useState(initialDate)
+  const [windowStart, setWindowStart] = useState(initialDate)
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [brandId, setBrandId] = useState<string | null>(null)
+  const [areaId, setAreaId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   // 月カレンダー用
@@ -177,41 +184,41 @@ export default function KinshichoSchedulePage() {
   const [monthNames, setMonthNames] = useState<Record<string, string[]>>({})
   const [monthLoading, setMonthLoading] = useState(false)
 
-  const displayWeek = useMemo(() => getWeekDates(selectedDate), [selectedDate])
+  const displayWeek = useMemo(() => getRollingDates(windowStart, 7), [windowStart])
   const calendarWeeks = useMemo(() => getCalendarWeeks(calYear, calMonth), [calYear, calMonth])
 
   useEffect(() => {
-    supabase
-      .from('brands')
-      .select('id')
-      .eq('slug', BRAND_SLUG)
-      .single()
-      .then(({ data }) => {
-        if (data) setBrandId(data.id)
-      })
+    Promise.all([
+      supabase.from('brands').select('id').eq('slug', BRAND_SLUG).single(),
+      supabase.from('areas').select('id').eq('slug', AREA_SLUG).single(),
+    ]).then(([brandRes, areaRes]) => {
+      if (brandRes.data) setBrandId(brandRes.data.id)
+      if (areaRes.data) setAreaId(areaRes.data.id)
+    })
   }, [])
 
   const fetchSchedules = useCallback(async () => {
-    if (!brandId) return
+    if (!brandId || !areaId) return
     setLoading(true)
     const { data } = await supabase
       .from('schedules')
       .select('*, girl:girls(*), area:areas(id, name, slug)')
       .eq('brand_id', brandId)
+      .eq('area_id', areaId)
       .eq('date', selectedDate)
       .eq('status', 'working')
       .not('start_time', 'is', null)
       .order('start_time', { ascending: true })
     setSchedules((data ?? []) as Schedule[])
     setLoading(false)
-  }, [brandId, selectedDate])
+  }, [brandId, areaId, selectedDate])
 
   useEffect(() => {
     if (viewMode === 'week') fetchSchedules()
   }, [fetchSchedules, viewMode])
 
   const fetchMonthData = useCallback(async () => {
-    if (!brandId) return
+    if (!brandId || !areaId) return
     setMonthLoading(true)
     const start = monthStart(calYear, calMonth)
     const end = monthEnd(calYear, calMonth)
@@ -220,6 +227,7 @@ export default function KinshichoSchedulePage() {
       .from('schedules')
       .select('date, girl:girls(name)')
       .eq('brand_id', brandId)
+      .eq('area_id', areaId)
       .eq('status', 'working')
       .not('start_time', 'is', null)
       .gte('date', start)
@@ -239,7 +247,7 @@ export default function KinshichoSchedulePage() {
     setMonthCounts(counts)
     setMonthNames(names)
     setMonthLoading(false)
-  }, [brandId, calYear, calMonth])
+  }, [brandId, areaId, calYear, calMonth])
 
   useEffect(() => {
     if (viewMode === 'month') fetchMonthData()
@@ -253,8 +261,20 @@ export default function KinshichoSchedulePage() {
     }
   }, [selectedDate, today, viewMode])
 
-  const goWeek = (offset: number) => {
-    setSelectedDate(addDays(selectedDate, offset * 7))
+  const selectDate = (dateStr: string) => {
+    if (dateStr < today) return
+    setSelectedDate(dateStr)
+  }
+
+  const goNextWeek = () => {
+    const nextStart = addDays(windowStart, 7)
+    setWindowStart(nextStart)
+    if (selectedDate < nextStart) setSelectedDate(nextStart)
+  }
+
+  const backToToday = () => {
+    setWindowStart(today)
+    setSelectedDate(today)
   }
 
   const goMonth = (offset: number) => {
@@ -262,11 +282,16 @@ export default function KinshichoSchedulePage() {
     let newYear = calYear
     if (newMonth < 1) { newMonth = 12; newYear-- }
     if (newMonth > 12) { newMonth = 1; newYear++ }
+    const currentMonthStart = today.slice(0, 7) // YYYY-MM
+    const nextMonthStart = `${newYear}-${String(newMonth).padStart(2, '0')}`
+    if (nextMonthStart < currentMonthStart) return
     setCalYear(newYear)
     setCalMonth(newMonth)
   }
 
   const selectFromCalendar = (dateStr: string) => {
+    if (dateStr < today) return
+    setWindowStart(dateStr)
     setSelectedDate(dateStr)
     setViewMode('week')
   }
@@ -282,18 +307,24 @@ export default function KinshichoSchedulePage() {
           >
             ← 戻る
           </Link>
-          <h1
-            className="text-base text-[#1c1917] tracking-[0.2em] font-medium"
-            style={{ fontFamily: serif }}
-          >
-            錦糸町の出勤情報
-          </h1>
+          <div className="min-w-0 flex-1">
+            <h1
+              className="text-base text-[#1c1917] tracking-[0.2em] font-medium"
+              style={{ fontFamily: serif }}
+            >
+              錦糸町の出勤情報
+            </h1>
+            <p className="text-[10px] text-[#a8a29e] mt-1 leading-snug">
+              錦糸町エリアは、管理で錦糸町に登録（選択）された出勤のみ表示されます（西船橋・葛西とは別枠）。
+            </p>
+          </div>
         </div>
       </header>
 
       {/* ===== 週/月 切り替えタブ ===== */}
       <div className="sticky top-[53px] z-40 bg-white border-b border-[#e7e5e4]">
         <div className="max-w-2xl mx-auto">
+          <StoreAreaNav />
           <div className="flex">
             <button
               onClick={() => setViewMode('week')}
@@ -326,22 +357,17 @@ export default function KinshichoSchedulePage() {
           {viewMode === 'week' && (
             <>
               <div className="flex items-center justify-between px-4 pt-2 pb-1">
-                <button
-                  onClick={() => goWeek(-1)}
-                  className="text-xs text-[#78716c] hover:text-[#b8860b] transition px-2 py-1"
-                >
-                  ◀ 前週
-                </button>
+                <div className="w-[3.5em]" aria-hidden />
                 {selectedDate !== today && (
                   <button
-                    onClick={() => setSelectedDate(today)}
+                    onClick={backToToday}
                     className="text-[10px] text-[#b8860b] underline hover:no-underline transition"
                   >
                     今日に戻る
                   </button>
                 )}
                 <button
-                  onClick={() => goWeek(1)}
+                  onClick={goNextWeek}
                   className="text-xs text-[#78716c] hover:text-[#b8860b] transition px-2 py-1"
                 >
                   次週 ▶
@@ -358,7 +384,7 @@ export default function KinshichoSchedulePage() {
                   return (
                     <button
                       key={dateStr}
-                      onClick={() => setSelectedDate(dateStr)}
+                      onClick={() => selectDate(dateStr)}
                       className={`
                         flex flex-col items-center py-2.5 transition-colors relative
                         ${isSelected
@@ -409,6 +435,26 @@ export default function KinshichoSchedulePage() {
                 <span className="text-3xl">{schedules.length}</span>名
               </p>
             )}
+          </div>
+
+          <div className="mb-5 rounded-xl border border-[#e7e5e4] bg-[#fafaf9] px-3.5 py-3 text-left text-[11px] leading-relaxed text-[#57534e]">
+            <p className="font-semibold text-[#44403c] mb-1.5">交通費について</p>
+            <ul className="list-disc pl-4 space-y-1">
+              <li>
+                <span className="font-medium text-[#44403c]">西船橋店待機</span>
+                から錦糸町エリアへ向かうご案内の場合は、
+                <span className="font-medium text-amber-900">別途交通費</span>
+                がかかります。
+              </li>
+              <li>
+                <span className="font-medium text-[#44403c]">錦糸町エリアで待機</span>
+                のキャストは、西船橋店からの移動がないため、上記の
+                <span className="font-medium">別途交通費はかかりません</span>。
+              </li>
+            </ul>
+            <p className="mt-2 text-[10px] text-[#a8a29e]">
+              キャストごとの待機は出勤コメント等でご確認ください。コメントに「西船待機」等がある行はカードに表示されます。
+            </p>
           </div>
 
           {loading ? (
@@ -558,6 +604,10 @@ export default function KinshichoSchedulePage() {
           </div>
         </div>
       )}
+
+      <div className="max-w-2xl mx-auto px-4 pb-8">
+        <OtherAreaLinks />
+      </div>
     </main>
   )
 }

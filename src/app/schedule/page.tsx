@@ -5,25 +5,16 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getGirlImageUrl } from '@/lib/brand/image-utils'
 import type { Girl, Schedule } from '@/lib/brand/brand-queries'
+import { businessDate, jstNow } from '@/lib/business-date'
+import StoreAreaNav from '@/components/StoreAreaNav'
+import OtherAreaLinks from '@/components/OtherAreaLinks'
 
 const serif = "var(--font-noto-serif), 'Noto Serif JP', serif"
 const BRAND_SLUG = 'hitomitsu'
 
 // ============================================
-// 朝8時基準の日付ユーティリティ
+// 日付ユーティリティ（営業日の今日は @/lib/business-date）
 // ============================================
-
-function jstNow(): Date {
-  return new Date(Date.now() + 9 * 60 * 60 * 1000)
-}
-
-function businessDate(): string {
-  const now = jstNow()
-  if (now.getUTCHours() < 8) {
-    now.setUTCDate(now.getUTCDate() - 1)
-  }
-  return now.toISOString().slice(0, 10)
-}
 
 function addDays(dateStr: string, n: number): string {
   const d = new Date(dateStr + 'T00:00:00Z')
@@ -31,12 +22,8 @@ function addDays(dateStr: string, n: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-function getWeekDates(baseDate: string): string[] {
-  const d = new Date(baseDate + 'T00:00:00Z')
-  const dow = d.getUTCDay()
-  const mondayOffset = dow === 0 ? -6 : 1 - dow
-  const monday = addDays(baseDate, mondayOffset)
-  return Array.from({ length: 7 }, (_, i) => addDays(monday, i))
+function getRollingDates(startDate: string, days = 7): string[] {
+  return Array.from({ length: days }, (_, i) => addDays(startDate, i))
 }
 
 const DOW_LABELS = ['日', '月', '火', '水', '木', '金', '土']
@@ -241,10 +228,12 @@ export default function MitsuSchedulePage() {
   const today = useMemo(() => businessDate(), [])
 
   const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
-  const initialDate = params?.get('date') || today
+  const initialDateRaw = params?.get('date') || today
+  const initialDate = initialDateRaw < today ? today : initialDateRaw
 
   const [viewMode, setViewMode] = useState<ViewMode>('week')
   const [selectedDate, setSelectedDate] = useState(initialDate)
+  const [windowStart, setWindowStart] = useState(initialDate)
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [brandId, setBrandId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -267,7 +256,7 @@ export default function MitsuSchedulePage() {
   const [monthNames, setMonthNames] = useState<Record<string, string[]>>({})
   const [monthLoading, setMonthLoading] = useState(false)
 
-  const displayWeek = useMemo(() => getWeekDates(selectedDate), [selectedDate])
+  const displayWeek = useMemo(() => getRollingDates(windowStart, 7), [windowStart])
   const calendarWeeks = useMemo(() => getCalendarWeeks(calYear, calMonth), [calYear, calMonth])
 
   // brand_id 解決
@@ -347,8 +336,20 @@ export default function MitsuSchedulePage() {
   }, [selectedDate, today, viewMode])
 
   // 週ナビ
-  const goWeek = (offset: number) => {
-    setSelectedDate(addDays(selectedDate, offset * 7))
+  const selectDate = (dateStr: string) => {
+    if (dateStr < today) return
+    setSelectedDate(dateStr)
+  }
+
+  const goNextWeek = () => {
+    const nextStart = addDays(windowStart, 7)
+    setWindowStart(nextStart)
+    if (selectedDate < nextStart) setSelectedDate(nextStart)
+  }
+
+  const backToToday = () => {
+    setWindowStart(today)
+    setSelectedDate(today)
   }
 
   // 月ナビ
@@ -390,6 +391,7 @@ export default function MitsuSchedulePage() {
       {/* ===== 週/月 切り替えタブ ===== */}
       <div className="sticky top-[53px] z-40 bg-white border-b border-[#e7e5e4]">
         <div className="max-w-2xl mx-auto">
+          <StoreAreaNav />
           <div className="flex">
             <button
               onClick={() => setViewMode('week')}
@@ -423,22 +425,17 @@ export default function MitsuSchedulePage() {
           {viewMode === 'week' && (
             <>
               <div className="flex items-center justify-between px-4 pt-2 pb-1">
-                <button
-                  onClick={() => goWeek(-1)}
-                  className="text-xs text-[#78716c] hover:text-[#b8860b] transition px-2 py-1"
-                >
-                  ◀ 前週
-                </button>
+                <div className="w-[3.5em]" aria-hidden />
                 {selectedDate !== today && (
                   <button
-                    onClick={() => setSelectedDate(today)}
+                    onClick={backToToday}
                     className="text-[10px] text-[#b8860b] underline hover:no-underline transition"
                   >
                     今日に戻る
                   </button>
                 )}
                 <button
-                  onClick={() => goWeek(1)}
+                  onClick={goNextWeek}
                   className="text-xs text-[#78716c] hover:text-[#b8860b] transition px-2 py-1"
                 >
                   次週 ▶
@@ -455,7 +452,7 @@ export default function MitsuSchedulePage() {
                   return (
                     <button
                       key={dateStr}
-                      onClick={() => setSelectedDate(dateStr)}
+                      onClick={() => selectDate(dateStr)}
                       className={`
                         flex flex-col items-center py-2.5 transition-colors relative
                         ${isSelected
@@ -659,6 +656,10 @@ export default function MitsuSchedulePage() {
           </div>
         </div>
       )}
+
+      <div className="max-w-2xl mx-auto px-4 pb-8">
+        <OtherAreaLinks />
+      </div>
     </main>
   )
 }

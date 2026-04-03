@@ -4,6 +4,8 @@ import { getTodaySchedule, getDiariesByBrand, getGirlsByBrand, getGirlsCount } f
 import type { Girl, Schedule, Diary } from '@/lib/brand/brand-queries'
 import { getGirlImageUrl } from '@/lib/brand/image-utils'
 import ScheduleSection from './components/ScheduleSection'
+import StoreAreaNav from '@/components/StoreAreaNav'
+import OtherAreaLinks from '@/components/OtherAreaLinks'
 
 export const revalidate = 60
 
@@ -150,6 +152,8 @@ export default async function MitsuPage() {
         </div>
       </header>
 
+      <StoreAreaNav />
+
       {/* ===== Hero ===== */}
       <section className="py-20 px-4 text-center">
         <p className="text-[#b8860b] text-[10px] tracking-[0.5em] mb-8 uppercase">
@@ -259,6 +263,7 @@ export default async function MitsuPage() {
             <p>営業時間: 10:00 - 翌4:00</p>
             {brand.phone && <p>TEL: {brand.phone}</p>}
           </div>
+          <OtherAreaLinks />
           <p className="text-[#a8a29e] text-[10px] mt-10">
             &copy; {new Date().getFullYear()} {brand.name} All Rights Reserved.
           </p>

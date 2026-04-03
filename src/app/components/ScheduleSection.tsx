@@ -5,25 +5,14 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getGirlImageUrl } from '@/lib/brand/image-utils'
 import type { Girl, Schedule } from '@/lib/brand/brand-queries'
+import { businessDate, jstNow } from '@/lib/business-date'
 
 const serif = "var(--font-noto-serif), 'Noto Serif JP', serif"
 const DOW_LABELS = ['日', '月', '火', '水', '木', '金', '土']
 
 // ============================================
-// 朝8時基準ユーティリティ
+// 朝8時基準の日付・時刻（@/lib/business-date）
 // ============================================
-
-function jstNow(): Date {
-  return new Date(Date.now() + 9 * 60 * 60 * 1000)
-}
-
-function businessDate(): string {
-  const now = jstNow()
-  if (now.getUTCHours() < 8) {
-    now.setUTCDate(now.getUTCDate() - 1)
-  }
-  return now.toISOString().slice(0, 10)
-}
 
 function addDays(dateStr: string, n: number): string {
   const d = new Date(dateStr + 'T00:00:00Z')
@@ -31,12 +20,8 @@ function addDays(dateStr: string, n: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-function getWeekDates(baseDate: string): string[] {
-  const d = new Date(baseDate + 'T00:00:00Z')
-  const dow = d.getUTCDay()
-  const mondayOffset = dow === 0 ? -6 : 1 - dow
-  const monday = addDays(baseDate, mondayOffset)
-  return Array.from({ length: 7 }, (_, i) => addDays(monday, i))
+function getRollingDates(startDate: string, days = 7): string[] {
+  return Array.from({ length: days }, (_, i) => addDays(startDate, i))
 }
 
 function getDow(dateStr: string): number {
@@ -189,9 +174,10 @@ export default function ScheduleSection({
 }) {
   const today = useMemo(() => businessDate(), [])
   const [selectedDate, setSelectedDate] = useState(today)
+  const [windowStart, setWindowStart] = useState(today)
   const [schedules, setSchedules] = useState<Schedule[]>(initialSchedules)
   const [loading, setLoading] = useState(false)
-  const displayWeek = useMemo(() => getWeekDates(selectedDate), [selectedDate])
+  const displayWeek = useMemo(() => getRollingDates(windowStart, 7), [windowStart])
   const isViewingToday = selectedDate === today
   const { sorted: sortedSchedules, endedIds } = useMemo(
     () => sortByAvailability(schedules, isViewingToday),
@@ -243,8 +229,20 @@ export default function ScheduleSection({
     fetchSchedules()
   }, [fetchSchedules])
 
-  const goWeek = (offset: number) => {
-    setSelectedDate(addDays(selectedDate, offset * 7))
+  const selectDate = (dateStr: string) => {
+    if (dateStr < today) return
+    setSelectedDate(dateStr)
+  }
+
+  const goNextWeek = () => {
+    const nextStart = addDays(windowStart, 7)
+    setWindowStart(nextStart)
+    if (selectedDate < nextStart) setSelectedDate(nextStart)
+  }
+
+  const backToToday = () => {
+    setWindowStart(today)
+    setSelectedDate(today)
   }
 
   return (
@@ -263,24 +261,19 @@ export default function ScheduleSection({
 
         {/* 週タブ */}
         <div className="bg-white rounded-xl shadow-sm mb-6 overflow-hidden">
-          {/* 前週/次週 */}
+          {/* 次週 */}
           <div className="flex items-center justify-between px-4 pt-2.5 pb-1">
-            <button
-              onClick={() => goWeek(-1)}
-              className="text-[11px] text-[#78716c] hover:text-[#b8860b] transition"
-            >
-              ◀ 前週
-            </button>
+            <div className="w-[3.5em]" aria-hidden />
             {selectedDate !== today && (
               <button
-                onClick={() => setSelectedDate(today)}
+                onClick={backToToday}
                 className="text-[10px] text-[#b8860b] underline hover:no-underline"
               >
                 今日に戻る
               </button>
             )}
             <button
-              onClick={() => goWeek(1)}
+              onClick={goNextWeek}
               className="text-[11px] text-[#78716c] hover:text-[#b8860b] transition"
             >
               次週 ▶
@@ -298,7 +291,7 @@ export default function ScheduleSection({
               return (
                 <button
                   key={dateStr}
-                  onClick={() => setSelectedDate(dateStr)}
+                  onClick={() => selectDate(dateStr)}
                   className={`
                     flex flex-col items-center py-2 transition-colors relative
                     ${isSelected

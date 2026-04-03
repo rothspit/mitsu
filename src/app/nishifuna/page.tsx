@@ -5,26 +5,17 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getGirlImageUrl } from '@/lib/brand/image-utils'
 import type { Girl, Schedule } from '@/lib/brand/brand-queries'
+import { businessDate } from '@/lib/business-date'
+import StoreAreaNav from '@/components/StoreAreaNav'
+import OtherAreaLinks from '@/components/OtherAreaLinks'
 
 const serif = "var(--font-noto-serif), 'Noto Serif JP', serif"
 const BRAND_SLUG = 'hitomitsu'
 const AREA_SLUG = 'nishifunabashi'
 
 // ============================================
-// 朝8時基準の日付ユーティリティ
+// 日付ユーティリティ（営業日の今日は @/lib/business-date）
 // ============================================
-
-function jstNow(): Date {
-  return new Date(Date.now() + 9 * 60 * 60 * 1000)
-}
-
-function businessDate(): string {
-  const now = jstNow()
-  if (now.getUTCHours() < 8) {
-    now.setUTCDate(now.getUTCDate() - 1)
-  }
-  return now.toISOString().slice(0, 10)
-}
 
 function addDays(dateStr: string, n: number): string {
   const d = new Date(dateStr + 'T00:00:00Z')
@@ -32,12 +23,8 @@ function addDays(dateStr: string, n: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-function getWeekDates(baseDate: string): string[] {
-  const d = new Date(baseDate + 'T00:00:00Z')
-  const dow = d.getUTCDay()
-  const mondayOffset = dow === 0 ? -6 : 1 - dow
-  const monday = addDays(baseDate, mondayOffset)
-  return Array.from({ length: 7 }, (_, i) => addDays(monday, i))
+function getRollingDates(startDate: string, days = 7): string[] {
+  return Array.from({ length: days }, (_, i) => addDays(startDate, i))
 }
 
 const DOW_LABELS = ['日', '月', '火', '水', '木', '金', '土']
@@ -108,7 +95,7 @@ function getCalendarWeeks(year: number, month: number): (string | null)[][] {
 // カード型の出勤表示
 // ============================================
 
-function CastCard({ schedule }: { schedule: Schedule }) {
+function CastCard({ schedule, showNishifunaWaitBadge }: { schedule: Schedule; showNishifunaWaitBadge?: boolean }) {
   const girl = schedule.girl as Girl | undefined
   const imageUrl = getGirlImageUrl(girl)
 
@@ -128,6 +115,14 @@ function CastCard({ schedule }: { schedule: Schedule }) {
           <div className="w-full h-full flex items-center justify-center">
             <span className="text-4xl opacity-10">👤</span>
           </div>
+        )}
+        {showNishifunaWaitBadge && (
+          <span
+            className="absolute top-2 right-2 z-[1] text-[9px] font-bold text-[#44403c] bg-[#f5f5f4]/95 border border-[#e7e5e4] rounded-full px-2 py-0.5 shadow-sm tracking-tight"
+            title="西船橋店にて待機"
+          >
+            📍 西船待機
+          </span>
         )}
         {schedule.schedule_text && (
           <span className="absolute top-2 left-2 text-[10px] text-white bg-[#b8860b] rounded-full px-2.5 py-0.5 shadow-sm">
@@ -157,10 +152,12 @@ export default function NishifunaSchedulePage() {
   const today = useMemo(() => businessDate(), [])
 
   const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
-  const initialDate = params?.get('date') || today
+  const initialDateRaw = params?.get('date') || today
+  const initialDate = initialDateRaw < today ? today : initialDateRaw
 
   const [viewMode, setViewMode] = useState<ViewMode>('week')
   const [selectedDate, setSelectedDate] = useState(initialDate)
+  const [windowStart, setWindowStart] = useState(initialDate)
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [brandId, setBrandId] = useState<string | null>(null)
   const [areaId, setAreaId] = useState<string | null>(null)
@@ -179,7 +176,7 @@ export default function NishifunaSchedulePage() {
   const [monthNames, setMonthNames] = useState<Record<string, string[]>>({})
   const [monthLoading, setMonthLoading] = useState(false)
 
-  const displayWeek = useMemo(() => getWeekDates(selectedDate), [selectedDate])
+  const displayWeek = useMemo(() => getRollingDates(windowStart, 7), [windowStart])
   const calendarWeeks = useMemo(() => getCalendarWeeks(calYear, calMonth), [calYear, calMonth])
 
   // brand_id + area_id 解決
@@ -193,18 +190,23 @@ export default function NishifunaSchedulePage() {
     })
   }, [])
 
-  // 週表示: 出勤データ取得（西船橋エリアのみ）
+  // 週表示: 西船橋エリア行 + area_id 未設定の従来行（null は西船・葛西共通扱いのレガシーデータ）
   const fetchSchedules = useCallback(async () => {
-    if (!brandId || !areaId) return
+    if (!brandId) return
     setLoading(true)
-    const { data } = await supabase
+    let q = supabase
       .from('schedules')
       .select('*, girl:girls(*), area:areas(id, name, slug)')
       .eq('brand_id', brandId)
       .eq('date', selectedDate)
       .eq('status', 'working')
       .not('start_time', 'is', null)
-      .order('start_time', { ascending: true })
+    if (areaId) {
+      q = q.or(`area_id.eq.${areaId},area_id.is.null`)
+    } else {
+      q = q.is('area_id', null)
+    }
+    const { data } = await q.order('start_time', { ascending: true })
     setSchedules((data ?? []) as Schedule[])
     setLoading(false)
   }, [brandId, areaId, selectedDate])
@@ -213,14 +215,14 @@ export default function NishifunaSchedulePage() {
     if (viewMode === 'week') fetchSchedules()
   }, [fetchSchedules, viewMode])
 
-  // 月表示: 月間データ取得（西船橋エリアのみ）
+  // 月表示: 同上（エリア指定 or null）
   const fetchMonthData = useCallback(async () => {
-    if (!brandId || !areaId) return
+    if (!brandId) return
     setMonthLoading(true)
     const start = monthStart(calYear, calMonth)
     const end = monthEnd(calYear, calMonth)
 
-    const { data } = await supabase
+    let q = supabase
       .from('schedules')
       .select('date, girl:girls(name)')
       .eq('brand_id', brandId)
@@ -228,6 +230,12 @@ export default function NishifunaSchedulePage() {
       .not('start_time', 'is', null)
       .gte('date', start)
       .lte('date', end)
+    if (areaId) {
+      q = q.or(`area_id.eq.${areaId},area_id.is.null`)
+    } else {
+      q = q.is('area_id', null)
+    }
+    const { data } = await q
 
     const counts: Record<string, number> = {}
     const names: Record<string, string[]> = {}
@@ -257,8 +265,20 @@ export default function NishifunaSchedulePage() {
     }
   }, [selectedDate, today, viewMode])
 
-  const goWeek = (offset: number) => {
-    setSelectedDate(addDays(selectedDate, offset * 7))
+  const selectDate = (dateStr: string) => {
+    if (dateStr < today) return
+    setSelectedDate(dateStr)
+  }
+
+  const goNextWeek = () => {
+    const nextStart = addDays(windowStart, 7)
+    setWindowStart(nextStart)
+    if (selectedDate < nextStart) setSelectedDate(nextStart)
+  }
+
+  const backToToday = () => {
+    setWindowStart(today)
+    setSelectedDate(today)
   }
 
   const goMonth = (offset: number) => {
@@ -266,11 +286,16 @@ export default function NishifunaSchedulePage() {
     let newYear = calYear
     if (newMonth < 1) { newMonth = 12; newYear-- }
     if (newMonth > 12) { newMonth = 1; newYear++ }
+    const currentMonthStart = today.slice(0, 7) // YYYY-MM
+    const nextMonthStart = `${newYear}-${String(newMonth).padStart(2, '0')}`
+    if (nextMonthStart < currentMonthStart) return
     setCalYear(newYear)
     setCalMonth(newMonth)
   }
 
   const selectFromCalendar = (dateStr: string) => {
+    if (dateStr < today) return
+    setWindowStart(dateStr)
     setSelectedDate(dateStr)
     setViewMode('week')
   }
@@ -298,6 +323,7 @@ export default function NishifunaSchedulePage() {
       {/* ===== 週/月 切り替えタブ ===== */}
       <div className="sticky top-[53px] z-40 bg-white border-b border-[#e7e5e4]">
         <div className="max-w-2xl mx-auto">
+          <StoreAreaNav />
           <div className="flex">
             <button
               onClick={() => setViewMode('week')}
@@ -330,22 +356,17 @@ export default function NishifunaSchedulePage() {
           {viewMode === 'week' && (
             <>
               <div className="flex items-center justify-between px-4 pt-2 pb-1">
-                <button
-                  onClick={() => goWeek(-1)}
-                  className="text-xs text-[#78716c] hover:text-[#b8860b] transition px-2 py-1"
-                >
-                  ◀ 前週
-                </button>
+                <div className="w-[3.5em]" aria-hidden />
                 {selectedDate !== today && (
                   <button
-                    onClick={() => setSelectedDate(today)}
+                    onClick={backToToday}
                     className="text-[10px] text-[#b8860b] underline hover:no-underline transition"
                   >
                     今日に戻る
                   </button>
                 )}
                 <button
-                  onClick={() => goWeek(1)}
+                  onClick={goNextWeek}
                   className="text-xs text-[#78716c] hover:text-[#b8860b] transition px-2 py-1"
                 >
                   次週 ▶
@@ -362,7 +383,7 @@ export default function NishifunaSchedulePage() {
                   return (
                     <button
                       key={dateStr}
-                      onClick={() => setSelectedDate(dateStr)}
+                      onClick={() => selectDate(dateStr)}
                       className={`
                         flex flex-col items-center py-2.5 transition-colors relative
                         ${isSelected
@@ -423,7 +444,7 @@ export default function NishifunaSchedulePage() {
           ) : schedules.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
               {schedules.map((s) => (
-                <CastCard key={s.id} schedule={s} />
+                <CastCard key={s.id} schedule={s} showNishifunaWaitBadge />
               ))}
             </div>
           ) : (
@@ -562,6 +583,10 @@ export default function NishifunaSchedulePage() {
           </div>
         </div>
       )}
+
+      <div className="max-w-2xl mx-auto px-4 pb-8">
+        <OtherAreaLinks />
+      </div>
     </main>
   )
 }
