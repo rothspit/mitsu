@@ -10,6 +10,7 @@ import { sortSchedulesForToday } from '@/lib/schedule/sort-schedules'
 import { dedupeSchedulesByGirlPerDay } from '@/lib/schedule/dedupe-schedules'
 import StoreAreaNav from '@/components/StoreAreaNav'
 import OtherAreaLinks from '@/components/OtherAreaLinks'
+import WaitLocationPin from '@/components/WaitLocationPin'
 
 const serif = "var(--font-noto-serif), 'Noto Serif JP', serif"
 const BRAND_SLUG = 'hitomitsu'
@@ -328,12 +329,19 @@ export default function NishifunaSchedulePage() {
           >
             ← 戻る
           </Link>
-          <h1
-            className="text-base text-[#1c1917] tracking-[0.2em] font-medium"
-            style={{ fontFamily: serif }}
-          >
-            西船橋の出勤情報
-          </h1>
+          <div className="flex-1 min-w-0">
+            <h1
+              className="text-base text-[#1c1917] tracking-[0.2em] font-medium truncate"
+              style={{ fontFamily: serif }}
+            >
+              西船橋の出勤情報
+            </h1>
+          </div>
+          <WaitLocationPin
+            label="西船橋"
+            title="西船橋エリア"
+            className="shrink-0"
+          />
         </div>
       </header>
 

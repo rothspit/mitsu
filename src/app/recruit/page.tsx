@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import { HITOMITSU_PHONE } from '@/lib/brand/hitomitsu-phone'
 
 const serif = "var(--font-noto-serif), 'Noto Serif JP', serif"
+const RECRUIT_PHONE = '050-1746-1888'
 
 export const metadata = {
   title: '求人情報 | 人妻の蜜',
@@ -67,9 +67,26 @@ export default function RecruitPage() {
             未経験の方も歓迎。安全第一で、無理なく続けられる環境を整えています。
           </p>
 
+          <div className="mt-5 flex justify-center">
+            <div className="relative">
+              <div className="absolute -inset-[1px] rounded-full bg-gradient-to-r from-amber-400/70 via-amber-500/40 to-amber-700/60 blur-[2px]" />
+              <div className="relative inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-black/35 px-4 py-2">
+                <span
+                  className="inline-flex h-6 items-center rounded-full bg-amber-500/[0.12] border border-amber-500/20 px-2 text-[10px] font-bold tracking-[0.18em] text-amber-300"
+                  style={{ fontFamily: serif }}
+                >
+                  NEW
+                </span>
+                <p className="text-[13px] font-semibold tracking-wider text-amber-200">
+                  オンライン面談実施中！
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="mt-10 grid grid-cols-2 gap-3">
             <a
-              href={`tel:${HITOMITSU_PHONE}`}
+              href={`tel:${RECRUIT_PHONE}`}
               className="rounded-xl bg-gradient-to-r from-amber-400 to-amber-700 text-neutral-950 font-bold tracking-wider py-3 text-center hover:opacity-90 transition-opacity"
             >
               ☎ お電話で応募
@@ -123,6 +140,15 @@ export default function RecruitPage() {
       <section className="py-14 border-t border-amber-500/10 bg-neutral-950">
         <div className="max-w-2xl mx-auto px-4">
           <SectionTitle>募集要項</SectionTitle>
+
+          <div className="mb-5 flex justify-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-white/[0.03] px-4 py-2 text-amber-200">
+              <span className="text-[12px]" aria-hidden>
+                ✦
+              </span>
+              <span className="text-[12px] font-semibold tracking-wider">オンライン面談実施中！</span>
+            </div>
+          </div>
 
           <div className="rounded-2xl border border-amber-500/15 bg-white/[0.03] overflow-hidden">
             <dl className="divide-y divide-amber-500/10">
@@ -197,10 +223,10 @@ export default function RecruitPage() {
             「短時間だけ」「未経験で不安」など、何でもOKです。
           </p>
           <a
-            href={`tel:${HITOMITSU_PHONE}`}
+            href={`tel:${RECRUIT_PHONE}`}
             className="mt-8 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-amber-700 text-neutral-950 font-extrabold tracking-wider px-10 py-4 hover:opacity-90 transition-opacity"
           >
-            ☎ {HITOMITSU_PHONE}
+            ☎ {RECRUIT_PHONE}
           </a>
         </div>
       </section>
