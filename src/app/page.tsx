@@ -7,6 +7,7 @@ import { getGirlImageUrl } from '@/lib/brand/image-utils'
 import ScheduleSection from './components/ScheduleSection'
 import StoreAreaNav from '@/components/StoreAreaNav'
 import OtherAreaLinks from '@/components/OtherAreaLinks'
+import WaitLocationPin from '@/components/WaitLocationPin'
 
 export const revalidate = 60
 
@@ -165,6 +166,12 @@ export default async function MitsuPage() {
         {brand.area && (
           <p className="text-[#a8a29e] text-xs mt-3 tracking-wider">{brand.area}</p>
         )}
+
+        <div className="mt-8 flex items-center justify-center flex-wrap gap-2">
+          <WaitLocationPin label="西船橋" title="西船橋エリア" href="/nishifuna" />
+          <WaitLocationPin label="葛西" title="葛西エリア" href="/kasai" />
+          <WaitLocationPin label="錦糸町" title="錦糸町エリア" href="/kinshicho" />
+        </div>
       </section>
 
       {/* ===== 出勤情報（日付切り替え対応） ===== */}
