@@ -22,18 +22,11 @@ config({ path: '.env.local' })
 // ============================================
 
 const MRVENREY_API = 'https://webapi2.mrvenrey.jp'
-const MRVENREY_BLOB = 'https://mrvenreyweb.blob.core.windows.net'
 const HITOMITSU_BRAND_ID = 'a1876a1a-1b51-4970-b25e-893ce0910690'
 
 const NISHIFUNABASHI_AREA_ID = 'ae839c4d-e3df-4cc0-9eb6-d3d2a161d1b9'
 
-const GUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-const IMAGE_KEYS = [
-  'Image1', 'Image2', 'Image3', 'Image4', 'Image5',
-  'Image6', 'Image7', 'Image8', 'Image9', 'Image10',
-  'Image11', 'Image12', 'Image13', 'Image14', 'Image15',
-] as const
+// プロフィール画像は CRM のみ（npm run link:crm-images）。MrVenrey 画像は DB に書かない。
 
 // ============================================
 // MrVenrey types
@@ -50,21 +43,6 @@ interface MrVenreyGirl {
   Hip: number | null
   IsNewface: boolean
   IsDisp: boolean
-  Image1?: string | null
-  Image2?: string | null
-  Image3?: string | null
-  Image4?: string | null
-  Image5?: string | null
-  Image6?: string | null
-  Image7?: string | null
-  Image8?: string | null
-  Image9?: string | null
-  Image10?: string | null
-  Image11?: string | null
-  Image12?: string | null
-  Image13?: string | null
-  Image14?: string | null
-  Image15?: string | null
   [key: string]: unknown
 }
 
@@ -90,22 +68,6 @@ async function getMrVenreyToken(): Promise<string> {
   }
   const data = await res.json()
   return data.access_token
-}
-
-function toImageUrl(value: string): string {
-  if (GUID_RE.test(value)) {
-    // route.ts と同じ形式: /{MRVENREY_ID}/image/girls/{GUID}/600_800.jpg
-    return `${MRVENREY_BLOB}/${process.env.MRVENREY_ID}/image/girls/${value}/600_800.jpg`
-  }
-  // フルURLの場合 → SAS除去
-  return value.split('?')[0]
-}
-
-function collectImageUrls(mr: MrVenreyGirl): string[] {
-  return IMAGE_KEYS
-    .map((k) => mr[k] as string | null | undefined)
-    .filter((v): v is string => typeof v === 'string' && v.length > 0)
-    .map(toImageUrl)
 }
 
 // ============================================
@@ -230,8 +192,6 @@ async function syncGirls() {
         continue
       }
 
-      const imageUrls = collectImageUrls(mr)
-
       // キャッチコピーを POST /api/girls/memos から取得
       const catchCopy = await fetchCatchCopy(jwt, mr.GirlId)
 
@@ -242,7 +202,6 @@ async function syncGirls() {
         cup: mr.Cup ?? null,
         waist: mr.West ?? null,
         hip: mr.Hip ?? null,
-        images: imageUrls.length > 0 ? imageUrls : null,
         mrvenrey_id: mr.GirlId,
         is_new: mr.IsNewface ?? false,
         is_active: mr.IsDisp ?? false,

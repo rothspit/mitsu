@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { getGirlImageUrl } from '@/lib/brand/image-utils'
+import { useGirlImageResolver } from '@/hooks/useCrmCastImageMap'
 import type { Girl, Schedule } from '@/lib/brand/brand-queries'
 import { businessDate } from '@/lib/business-date'
+import { sortSchedulesForToday } from '@/lib/schedule/sort-schedules'
+import { dedupeSchedulesByGirlPerDay } from '@/lib/schedule/dedupe-schedules'
 import StoreAreaNav from '@/components/StoreAreaNav'
 import OtherAreaLinks from '@/components/OtherAreaLinks'
 
@@ -105,9 +107,15 @@ function getCalendarWeeks(year: number, month: number): (string | null)[][] {
 // カード型の出勤表示
 // ============================================
 
-function CastCard({ schedule }: { schedule: Schedule }) {
+function CastCard({
+  schedule,
+  resolveGirlImage,
+}: {
+  schedule: Schedule
+  resolveGirlImage: (girl: Girl | undefined | null) => string | null
+}) {
   const girl = schedule.girl as Girl | undefined
-  const imageUrl = getGirlImageUrl(girl)
+  const imageUrl = resolveGirlImage(girl)
   const nishifunaWait = isNishifunaWaitForKinshicho(schedule)
 
   return (
@@ -184,7 +192,14 @@ export default function KinshichoSchedulePage() {
   const [monthNames, setMonthNames] = useState<Record<string, string[]>>({})
   const [monthLoading, setMonthLoading] = useState(false)
 
+  const resolveGirlImage = useGirlImageResolver()
+
   const displayWeek = useMemo(() => getRollingDates(windowStart, 7), [windowStart])
+  const isViewingToday = selectedDate === today
+  const { sorted: sortedSchedules } = useMemo(
+    () => sortSchedulesForToday(schedules, isViewingToday),
+    [schedules, isViewingToday]
+  )
   const calendarWeeks = useMemo(() => getCalendarWeeks(calYear, calMonth), [calYear, calMonth])
 
   useEffect(() => {
@@ -209,7 +224,7 @@ export default function KinshichoSchedulePage() {
       .eq('status', 'working')
       .not('start_time', 'is', null)
       .order('start_time', { ascending: true })
-    setSchedules((data ?? []) as Schedule[])
+    setSchedules(dedupeSchedulesByGirlPerDay((data ?? []) as Schedule[]))
     setLoading(false)
   }, [brandId, areaId, selectedDate])
 
@@ -464,8 +479,8 @@ export default function KinshichoSchedulePage() {
             </div>
           ) : schedules.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
-              {schedules.map((s) => (
-                <CastCard key={s.id} schedule={s} />
+              {sortedSchedules.map((s) => (
+                <CastCard key={s.id} schedule={s} resolveGirlImage={resolveGirlImage} />
               ))}
             </div>
           ) : (

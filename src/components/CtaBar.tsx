@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import { HITOMITSU_PHONE } from '@/lib/brand/hitomitsu-phone'
 
-const PHONE = '050-1743-9555'
+const PHONE = HITOMITSU_PHONE
 const DISCORD_WEBHOOK = 'https://discordapp.com/api/webhooks/1475912332063408404/odrVJd5Ftsyh-5_oaJq75ELf-gJvTxtqMH18i6trvod2fBpTc7YTHtuY1_882A8IYtmF'
 const COURSES = ['60分', '90分', '120分', '180分']
 const BRAND_ID = 'a1876a1a-1b51-4970-b25e-893ce0910690'

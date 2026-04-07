@@ -5,8 +5,8 @@ export const runtime = 'nodejs'
 export const maxDuration = 60
 
 const MRVENREY_API = 'https://webapi2.mrvenrey.jp'
-const MRVENREY_BLOB = 'https://mrvenreyweb.blob.core.windows.net'
 const HITOMITSU_BRAND_ID = 'a1876a1a-1b51-4970-b25e-893ce0910690'
+// プロフィール画像は CRM のみ（npm run link:crm-images）。MrVenrey 画像は DB に書かない。
 const SYNC_SECRET = 'mitsu-sync-2026'
 
 interface MrVenreySchedule {
@@ -28,22 +28,7 @@ interface MrVenreyGirl {
   West: number
   Hip: number
   IsNewface: boolean
-  Image1?: string
-  Image2?: string
-  Image3?: string
-  Image4?: string
-  Image5?: string
-  Image6?: string
-  Image7?: string
-  Image8?: string
-  Image9?: string
-  Image10?: string
-  Image11?: string
-  Image12?: string
-  Image13?: string
-  Image14?: string
-  Image15?: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 // ============================================
@@ -62,24 +47,6 @@ async function getMrVenreyToken(): Promise<string> {
   if (!res.ok) throw new Error(`MrVenrey login failed (${res.status})`)
   const data = await res.json()
   return data.access_token
-}
-
-const GUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-function resolveImageUrl(val: string | null | undefined): string | null {
-  if (!val) return null
-  if (GUID_RE.test(val)) return `${MRVENREY_BLOB}/girl-image/${val}`
-  if (val.startsWith('http')) return val
-  return null
-}
-
-function extractImages(girl: MrVenreyGirl): string[] {
-  const urls: string[] = []
-  for (let i = 1; i <= 15; i++) {
-    const url = resolveImageUrl(girl[`Image${i}`])
-    if (url) urls.push(url)
-  }
-  return urls
 }
 
 function getTodayJST(): string {
@@ -146,7 +113,6 @@ export async function POST(req: NextRequest) {
       if (!match) { result.girls.skipped++; continue }
 
       matchedMrIds.add(String(mr.GirlId))
-      const images = extractImages(mr)
       const { error } = await supabase
         .from('girls')
         .update({
@@ -157,7 +123,6 @@ export async function POST(req: NextRequest) {
           cup: mr.Cup || null,
           waist: mr.West || null,
           hip: mr.Hip || null,
-          images,
           is_new: mr.IsNewface ?? false,
           is_active: true,
         })

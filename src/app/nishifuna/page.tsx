@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { getGirlImageUrl } from '@/lib/brand/image-utils'
+import { useGirlImageResolver } from '@/hooks/useCrmCastImageMap'
 import type { Girl, Schedule } from '@/lib/brand/brand-queries'
 import { businessDate } from '@/lib/business-date'
+import { sortSchedulesForToday } from '@/lib/schedule/sort-schedules'
+import { dedupeSchedulesByGirlPerDay } from '@/lib/schedule/dedupe-schedules'
 import StoreAreaNav from '@/components/StoreAreaNav'
 import OtherAreaLinks from '@/components/OtherAreaLinks'
 
@@ -95,9 +97,17 @@ function getCalendarWeeks(year: number, month: number): (string | null)[][] {
 // カード型の出勤表示
 // ============================================
 
-function CastCard({ schedule, showNishifunaWaitBadge }: { schedule: Schedule; showNishifunaWaitBadge?: boolean }) {
+function CastCard({
+  schedule,
+  showNishifunaWaitBadge,
+  resolveGirlImage,
+}: {
+  schedule: Schedule
+  showNishifunaWaitBadge?: boolean
+  resolveGirlImage: (girl: Girl | undefined | null) => string | null
+}) {
   const girl = schedule.girl as Girl | undefined
-  const imageUrl = getGirlImageUrl(girl)
+  const imageUrl = resolveGirlImage(girl)
 
   return (
     <Link
@@ -176,7 +186,14 @@ export default function NishifunaSchedulePage() {
   const [monthNames, setMonthNames] = useState<Record<string, string[]>>({})
   const [monthLoading, setMonthLoading] = useState(false)
 
+  const resolveGirlImage = useGirlImageResolver()
+
   const displayWeek = useMemo(() => getRollingDates(windowStart, 7), [windowStart])
+  const isViewingToday = selectedDate === today
+  const { sorted: sortedSchedules } = useMemo(
+    () => sortSchedulesForToday(schedules, isViewingToday),
+    [schedules, isViewingToday]
+  )
   const calendarWeeks = useMemo(() => getCalendarWeeks(calYear, calMonth), [calYear, calMonth])
 
   // brand_id + area_id 解決
@@ -207,7 +224,7 @@ export default function NishifunaSchedulePage() {
       q = q.is('area_id', null)
     }
     const { data } = await q.order('start_time', { ascending: true })
-    setSchedules((data ?? []) as Schedule[])
+    setSchedules(dedupeSchedulesByGirlPerDay((data ?? []) as Schedule[]))
     setLoading(false)
   }, [brandId, areaId, selectedDate])
 
@@ -443,8 +460,8 @@ export default function NishifunaSchedulePage() {
             </div>
           ) : schedules.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
-              {schedules.map((s) => (
-                <CastCard key={s.id} schedule={s} showNishifunaWaitBadge />
+              {sortedSchedules.map((s) => (
+                <CastCard key={s.id} schedule={s} showNishifunaWaitBadge resolveGirlImage={resolveGirlImage} />
               ))}
             </div>
           ) : (

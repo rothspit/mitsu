@@ -10,6 +10,13 @@ export function toProxyImageUrl(blobUrl: string): string | null {
 
 const CRM_STORAGE_BASE = 'https://crm.h-mitsu.com/storage/';
 
+/** Web 表示では Venrey Blob 等を使わない（画像は CRM に統一） */
+export function isVenreyImageUrl(url: string | null | undefined): boolean {
+  if (!url || typeof url !== 'string') return false
+  const u = url.toLowerCase()
+  return u.includes('mrvenreyweb.blob') || u.includes('mrvenrey/girl-image')
+}
+
 function formatImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
@@ -20,23 +27,41 @@ function formatImageUrl(url: string | null | undefined): string | null {
   return `${CRM_STORAGE_BASE}${cleanUrl.replace(/^\/+/, '')}`;
 }
 
-// Girl オブジェクトから画像URL を取得
+function firstNonVenreyFromStrings(urls: (string | null | undefined)[]): string | null {
+  for (const raw of urls) {
+    if (!raw || typeof raw !== 'string') continue
+    if (raw.includes('placehold.co')) continue
+    const formatted = formatImageUrl(raw)
+    if (!formatted) continue
+    if (isVenreyImageUrl(formatted)) continue
+    return formatted
+  }
+  return null
+}
+
+// Girl オブジェクトから画像URL を取得（Venrey Blob は使わず、CRM ストレージ等のみ）
 export function getGirlImageUrl(girl: any): string | null {
-  let url = girl?.profile_image;
-  if (!url && girl?.cast_images && Array.isArray(girl.cast_images) && girl.cast_images.length > 0) {
-    const firstImg = girl.cast_images[0];
-    url = typeof firstImg === 'string' ? firstImg : firstImg.image_path || firstImg.url;
-  }
-  url = url || girl?.idol_image_path || girl?.image || girl?.thumbnail;
-  if (!url && girl?.images && Array.isArray(girl.images) && girl.images.length > 0) {
-     url = girl.images[0];
-  }
-  url = url || girl?.image1_url;
-  
-  if (url && typeof url === 'string' && url.includes('placehold.co')) {
-    return null; // Ignore external dummy service to prevent Next.js UI Preload warnings
-  }
-  return formatImageUrl(url);
+  if (!girl) return null
+
+  const fromCastImages =
+    girl.cast_images && Array.isArray(girl.cast_images) && girl.cast_images.length > 0
+      ? girl.cast_images.map((img: any) => (typeof img === 'string' ? img : img?.image_path || img?.url))
+      : []
+
+  const fromImagesArray =
+    girl.images && Array.isArray(girl.images) ? girl.images.filter((x: unknown) => typeof x === 'string') : []
+
+  const candidates: (string | null | undefined)[] = [
+    girl.profile_image,
+    ...fromCastImages,
+    girl.idol_image_path,
+    girl.image,
+    girl.thumbnail,
+    ...fromImagesArray,
+    girl.image1_url,
+  ]
+
+  return firstNonVenreyFromStrings(candidates)
 }
 
 // Girl オブジェクトから全画像URL を取得
@@ -68,10 +93,13 @@ export function getGirlImageUrls(girl: any): string[] {
   }
 
   let safeImages = rawImages
-    .map(url => typeof url === 'string' ? url : null)
+    .map((url) => (typeof url === 'string' ? url : null))
     .filter(Boolean)
-    .map(url => formatImageUrl(url))
-    .filter(url => url && typeof url === 'string' && !url.includes('placehold.co'));
+    .map((url) => formatImageUrl(url))
+    .filter(
+      (url): url is string =>
+        !!url && typeof url === 'string' && !url.includes('placehold.co') && !isVenreyImageUrl(url)
+    )
 
-  return Array.from(new Set(safeImages)) as string[];
+  return Array.from(new Set(safeImages)) as string[]
 }

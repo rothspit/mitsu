@@ -9,7 +9,8 @@
     "lint": "next lint",
     "sync:mrvenrey": "tsx scripts/sync-mrvenrey.ts",
     "sync:schedule": "tsx scripts/sync-mrvenrey.ts --schedule",
-    "sync:crm": "tsx scripts/sync-crm.ts"
+    "sync:crm": "tsx scripts/sync-crm.ts",
+    "link:crm-images": "npx tsx scripts/link-crm-images-to-girls.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.985.0",

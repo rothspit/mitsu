@@ -1,15 +1,14 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { getBrand } from '@/lib/brand/get-brand'
-import { getGirlsByBrand, getGirlsCount } from '@/lib/brand/brand-queries'
 import type { Girl } from '@/lib/brand/brand-queries'
 import { getGirlImageUrl } from '@/lib/brand/image-utils'
+import { fetchHitomitsuGirlsSortedByScheduleCount } from '@/lib/brand/hitomitsu-girls'
 
 export const revalidate = 60
 
 const SLUG = 'hitomitsu'
 const serif = "var(--font-noto-serif), 'Noto Serif JP', serif"
-
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: '在籍キャスト一覧｜人妻の蜜',
@@ -64,11 +63,8 @@ function GirlCard({ girl }: { girl: Girl }) {
 }
 
 export default async function MitsuCastPage() {
-  const [brand, girls, girlsCount] = await Promise.all([
-    getBrand(SLUG),
-    getGirlsByBrand({ forceSlug: SLUG }),
-    getGirlsCount(SLUG),
-  ])
+  const brand = await getBrand(SLUG)
+  const girls = await fetchHitomitsuGirlsSortedByScheduleCount()
 
   return (
     <main className="min-h-screen bg-[#fafaf9] text-[#1c1917] pb-20">
@@ -88,7 +84,7 @@ export default async function MitsuCastPage() {
           {brand.name}｜{brand.area || ''}
         </p>
         <p className="text-center text-[#b8860b] text-sm tracking-wider mb-10">
-          在籍 {girlsCount}名
+          在籍 {girls.length}名
         </p>
 
         {girls.length > 0 ? (

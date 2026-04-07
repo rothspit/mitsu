@@ -1,6 +1,7 @@
 import { headers } from 'next/headers'
 import { supabase } from '@/lib/supabase'
 import type { Brand, BrandSlug, BrandThemeConfig } from './brand-context'
+import { HITOMITSU_PHONE } from './hitomitsu-phone'
 
 // ============================================
 // フォールバック定義
@@ -47,6 +48,7 @@ const FALLBACK_BRANDS: Record<BrandSlug, Brand> = {
     area: '西船橋・葛西・錦糸町',
     site_title: '人妻の蜜｜西船橋・葛西・錦糸町',
     site_tagline: '大人の極上癒やし',
+    phone: HITOMITSU_PHONE,
     description: '人妻の蜜 - 大人の極上癒やし空間。',
     theme_config: {
       colors: {
@@ -122,7 +124,7 @@ export async function getBrand(forceSlug?: string): Promise<Brand> {
       name: data.name,
       domain: data.domain,
       area: data.area ?? undefined,
-      phone: data.phone ?? undefined,
+      phone: slug === 'hitomitsu' ? HITOMITSU_PHONE : data.phone ?? undefined,
       line_url: data.line_url ?? undefined,
       site_title: data.site_title ?? undefined,
       site_tagline: data.site_tagline ?? undefined,

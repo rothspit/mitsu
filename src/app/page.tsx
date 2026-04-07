@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { getBrand } from '@/lib/brand/get-brand'
-import { getTodaySchedule, getDiariesByBrand, getGirlsByBrand, getGirlsCount } from '@/lib/brand/brand-queries'
+import { getTodaySchedule, getDiariesByBrand } from '@/lib/brand/brand-queries'
+import { countHitomitsuActiveGirls, fetchHitomitsuGirlsSortedByScheduleCount } from '@/lib/brand/hitomitsu-girls'
 import type { Girl, Schedule, Diary } from '@/lib/brand/brand-queries'
 import { getGirlImageUrl } from '@/lib/brand/image-utils'
 import ScheduleSection from './components/ScheduleSection'
@@ -105,8 +106,8 @@ export default async function MitsuPage() {
     getBrand(SLUG),
     getTodaySchedule(SLUG),
     getDiariesByBrand({ limit: 8, forceSlug: SLUG }),
-    getGirlsByBrand({ limit: 12, forceSlug: SLUG }),
-    getGirlsCount(SLUG),
+    fetchHitomitsuGirlsSortedByScheduleCount({ limit: 12 }),
+    countHitomitsuActiveGirls(),
   ])
 
   const jsonLd = {
@@ -134,21 +135,13 @@ export default async function MitsuPage() {
       />
       {/* ===== Header ===== */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-[#b8860b]/30">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-2xl mx-auto px-4 py-4">
           <h1
             className="text-lg text-[#b8860b] tracking-[0.3em] font-medium"
             style={{ fontFamily: serif }}
           >
             人妻の蜜
           </h1>
-          {brand.phone && (
-            <a
-              href={`tel:${brand.phone}`}
-              className="text-[10px] text-[#b8860b] tracking-widest border border-[#b8860b]/40 px-3 py-1.5 hover:bg-[#b8860b]/5 transition"
-            >
-              TEL
-            </a>
-          )}
         </div>
       </header>
 
@@ -173,24 +166,6 @@ export default async function MitsuPage() {
           <p className="text-[#a8a29e] text-xs mt-3 tracking-wider">{brand.area}</p>
         )}
       </section>
-
-      {/* ===== 電話 CTA ===== */}
-      {brand.phone && (
-        <section className="px-4 pb-16">
-          <div className="max-w-xs mx-auto text-center">
-            <a
-              href={`tel:${brand.phone}`}
-              className="block border border-[#b8860b]/40 text-[#b8860b] py-4 px-6 tracking-[0.2em] text-base font-medium hover:bg-[#b8860b]/5 transition"
-              style={{ fontFamily: serif }}
-            >
-              ☎ {brand.phone}
-            </a>
-            <p className="text-[#a8a29e] text-[10px] mt-3 tracking-wider">
-              お電話でのご予約・お問い合わせ
-            </p>
-          </div>
-        </section>
-      )}
 
       {/* ===== 出勤情報（日付切り替え対応） ===== */}
       <ScheduleSection brandId={brand.id} initialSchedules={schedules} />
@@ -261,7 +236,6 @@ export default async function MitsuPage() {
           <div className="text-[#78716c] text-xs space-y-1.5 tracking-wider">
             {brand.area && <p>{brand.area}</p>}
             <p>営業時間: 10:00 - 翌4:00</p>
-            {brand.phone && <p>TEL: {brand.phone}</p>}
           </div>
           <OtherAreaLinks />
           <p className="text-[#a8a29e] text-[10px] mt-10">
