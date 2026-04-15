@@ -32,6 +32,9 @@ export default async function KinshichoPage() {
         <p className="text-xs text-[#44403c] leading-relaxed tracking-wider">
           錦糸町駅周辺のホテルへ即配。墨田区・江東区エリアも送迎対応でご案内します。
         </p>
+        <p className="mt-2 text-[11px] text-[#78716c] leading-relaxed tracking-wider">
+          錦糸町店は新規オープンにつき、当面の在籍は「ゆい」さんからご案内予定です。
+        </p>
         <div className="mt-2 text-[11px] text-[#78716c] tracking-wider">
           <Link href="/nishifuna" className="hover:text-[#b8860b] underline-offset-2 hover:underline">
             西船橋店の出勤表はこちら

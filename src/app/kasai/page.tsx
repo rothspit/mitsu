@@ -32,6 +32,9 @@ export default async function KasaiPage() {
         <p className="text-xs text-[#44403c] leading-relaxed tracking-wider">
           葛西駅・西葛西駅周辺のホテルへ即配。江戸川区内は交通費一律でご案内します。
         </p>
+        <p className="mt-2 text-[11px] text-[#78716c] leading-relaxed tracking-wider">
+          葛西・西葛西・船堀・一之江など江戸川区エリアで、人妻・熟女と落ち着いた大人の時間を。ご希望のホテル・ご自宅へスムーズにお伺いします。
+        </p>
         <div className="mt-2 text-[11px] text-[#78716c] tracking-wider">
           <Link href="/nishifuna" className="hover:text-[#b8860b] underline-offset-2 hover:underline">
             西船橋店の出勤表はこちら
