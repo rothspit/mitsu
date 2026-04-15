@@ -1,5 +1,4 @@
 import { headers } from 'next/headers'
-import { supabase } from '@/lib/supabase'
 import type { Brand, BrandSlug, BrandThemeConfig } from './brand-context'
 import { HITOMITSU_PHONE } from './hitomitsu-phone'
 
@@ -100,39 +99,12 @@ export async function getBrandSlug(forceSlug?: string): Promise<BrandSlug> {
 export async function getBrand(forceSlug?: string): Promise<Brand> {
   const slug = await getBrandSlug(forceSlug)
 
-  try {
-    const { data, error } = await supabase
-      .from('brands')
-      .select('*')
-      .eq('slug', slug)
-      .single()
-
-    if (error || !data) {
-      console.warn(`[getBrand] Supabase fetch failed for "${slug}", using fallback:`, error?.message)
-      return FALLBACK_BRANDS[slug] ?? FALLBACK_BRANDS[DEFAULT_SLUG]
-    }
-
-    // theme_config が JSON 文字列の場合はパース
-    const themeConfig: BrandThemeConfig =
-      typeof data.theme_config === 'string'
-        ? JSON.parse(data.theme_config)
-        : data.theme_config
-
-    return {
-      id: data.id,
-      slug: data.slug,
-      name: data.name,
-      domain: data.domain,
-      area: data.area ?? undefined,
-      phone: slug === 'hitomitsu' ? HITOMITSU_PHONE : data.phone ?? undefined,
-      line_url: data.line_url ?? undefined,
-      site_title: data.site_title ?? undefined,
-      site_tagline: data.site_tagline ?? undefined,
-      description: data.description ?? undefined,
-      theme_config: themeConfig,
-    } satisfies Brand
-  } catch (e) {
-    console.warn(`[getBrand] Unexpected error for "${slug}", using fallback:`, e)
-    return FALLBACK_BRANDS[slug] ?? FALLBACK_BRANDS[DEFAULT_SLUG]
-  }
+  // CRMメイン運用: 公式側は Supabase を参照しない（brandはフォールバック定義で完結）
+  // 将来 brand マスタも CRM から取る場合はここを差し替える
+  const b = FALLBACK_BRANDS[slug] ?? FALLBACK_BRANDS[DEFAULT_SLUG]
+  return {
+    ...b,
+    phone: slug === 'hitomitsu' ? HITOMITSU_PHONE : b.phone,
+    theme_config: b.theme_config as BrandThemeConfig,
+  } satisfies Brand
 }

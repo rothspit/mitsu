@@ -5,7 +5,7 @@ export default function WaitLocationPin({
   title,
   href,
   className = '',
-  icon = '📍',
+  icon,
 }: {
   label: ReactNode
   title?: string
@@ -19,9 +19,11 @@ export default function WaitLocationPin({
 
   const content = (
     <>
-      <span aria-hidden className="text-[12px] leading-none">
-        {icon}
-      </span>
+      {icon != null && (
+        <span aria-hidden className="text-[12px] leading-none">
+          {icon}
+        </span>
+      )}
       <span className="leading-none">{label}</span>
     </>
   )

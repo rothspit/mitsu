@@ -1,10 +1,13 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import Link from 'next/link'
+import { CastExperienceBadge, CastPlayMatrix, CastProfileQA } from '@/components/cast-profile'
+import { extractCastProfileExtra } from '@/lib/cast-profile/extract'
 import { getGirlImageUrls } from '@/lib/brand/image-utils'
 import type { Girl, Schedule } from '@/lib/brand/brand-queries'
 import type { Brand } from '@/lib/brand/brand-context'
+import { supabase } from '@/lib/supabase'
 
 const serif = "var(--font-noto-serif), 'Noto Serif JP', serif"
 
@@ -173,159 +176,122 @@ function WeekSchedule({ schedules, weekStart }: { schedules: Schedule[]; weekSta
   )
 }
 
-export interface Review {
-  id: string
-  nickname: string
-  rating: number
-  title: string | null
-  content: string
-  created_at: string
-}
-
-function Stars({ count }: { count: number }) {
-  return (
-    <span className="text-[#b8860b]">
-      {'★'.repeat(count)}{'☆'.repeat(5 - count)}
-    </span>
-  )
-}
-
-function ReviewList({ reviews }: { reviews: Review[] }) {
-  if (reviews.length === 0) return null
-  return (
-    <div className="space-y-4">
-      {reviews.map((r) => {
-        const date = new Date(r.created_at)
-        const dateStr = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`
-        return (
-          <div key={r.id} className="bg-[#fafaf9] rounded-lg p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-[#78716c]">{r.nickname}</span>
-              <span className="text-[10px] text-[#a8a29e]">{dateStr}</span>
-            </div>
-            <div className="text-sm mb-1"><Stars count={r.rating} /></div>
-            {r.title && <p className="text-sm font-medium text-[#1c1917] mb-1">{r.title}</p>}
-            <p className="text-sm text-[#44403c] leading-relaxed whitespace-pre-line">{r.content}</p>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function ReviewForm({ girlId }: { girlId: string }) {
-  const [open, setOpen] = useState(false)
-  const [nickname, setNickname] = useState('')
-  const [rating, setRating] = useState(5)
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState('')
+function ReserveModal({
+  open,
+  onClose,
+  castId,
+  castName,
+  startTime,
+}: {
+  open: boolean
+  onClose: () => void
+  castId: string
+  castName: string
+  startTime: string
+}) {
+  const [phone, setPhone] = useState('')
+  const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
 
   const submit = useCallback(async () => {
-    if (!nickname.trim() || !content.trim()) {
-      setError('ニックネームと口コミ内容を入力してください')
+    setError('')
+    if (!phone.trim()) {
+      setError('電話番号を入力してください')
       return
     }
     setSubmitting(true)
-    setError('')
     try {
-      const res = await fetch('/api/reviews', {
+      const res = await fetch('/api/reserve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ girl_id: girlId, nickname: nickname.trim(), rating, title: title.trim() || null, content: content.trim() }),
+        body: JSON.stringify({
+          cast: { id: castId, name: castName },
+          startTime,
+          phone: phone.trim(),
+          message: message.trim() || null,
+          sourceUrl: typeof window !== 'undefined' ? window.location.href : null,
+          timestamp: new Date().toISOString(),
+        }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || '送信に失敗しました')
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(json.error || '送信に失敗しました')
       setDone(true)
     } catch (e: any) {
-      setError(e.message)
+      setError(e?.message || '送信に失敗しました')
     } finally {
       setSubmitting(false)
     }
-  }, [girlId, nickname, rating, title, content])
+  }, [castId, castName, startTime, phone, message])
 
-  if (done) {
-    return (
-      <div className="bg-[#fafaf9] rounded-lg p-5 text-center">
-        <p className="text-sm text-[#44403c]">口コミを投稿しました。<br />承認後に表示されます。</p>
-      </div>
-    )
-  }
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="w-full border border-[#b8860b]/30 text-[#b8860b] text-xs py-3 tracking-wider hover:bg-[#b8860b]/5 transition rounded-lg"
-      >
-        口コミを書く
-      </button>
-    )
-  }
+  if (!open) return null
 
   return (
-    <div className="bg-[#fafaf9] rounded-lg p-5 space-y-3">
-      <div>
-        <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">ニックネーム *</label>
-        <input
-          type="text"
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          maxLength={50}
-          className="w-full border border-[#d6d3d1] rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#b8860b]"
-          placeholder="匿名"
-        />
-      </div>
-      <div>
-        <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">評価 *</label>
-        <div className="flex gap-1">
-          {[1, 2, 3, 4, 5].map((v) => (
-            <button key={v} type="button" onClick={() => setRating(v)} className="text-xl">
-              <span className={v <= rating ? 'text-[#b8860b]' : 'text-[#d6d3d1]'}>★</span>
+    <div className="fixed inset-0 z-[100]">
+      <button type="button" className="absolute inset-0 bg-black/40" aria-label="閉じる" onClick={onClose} />
+      <div className="absolute inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center p-3">
+        <div className="w-full sm:max-w-md bg-white rounded-2xl shadow-xl border border-[#e7e5e4] overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#e7e5e4] flex items-center justify-between">
+            <p className="text-sm font-medium tracking-wider" style={{ fontFamily: serif }}>
+              予約リクエスト
+            </p>
+            <button type="button" onClick={onClose} className="text-xs text-[#78716c] hover:text-[#1c1917]">
+              閉じる
             </button>
-          ))}
+          </div>
+
+          <div className="px-5 py-5 space-y-4">
+            <div className="bg-[#fafaf9] rounded-lg p-4 border border-[#f5f5f4]">
+              <p className="text-[10px] text-[#a8a29e] tracking-wider mb-1">指名</p>
+              <p className="text-sm text-[#1c1917]" style={{ fontFamily: serif }}>
+                {castName}
+              </p>
+              <p className="text-[10px] text-[#78716c] mt-2">希望時間: {startTime}</p>
+            </div>
+
+            {done ? (
+              <div className="bg-[#fafaf9] rounded-lg p-5 text-center">
+                <p className="text-sm text-[#44403c] leading-relaxed">
+                  送信しました。店舗から折り返しご連絡します。
+                </p>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">電話番号 *</label>
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    inputMode="tel"
+                    placeholder="090-1234-5678"
+                    className="w-full border border-[#d6d3d1] rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#b8860b]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">メッセージ（任意）</label>
+                  <textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    rows={3}
+                    placeholder="ご希望があれば入力してください"
+                    className="w-full border border-[#d6d3d1] rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#b8860b] resize-none"
+                  />
+                </div>
+                {error && <p className="text-xs text-red-600">{error}</p>}
+                <button
+                  type="button"
+                  onClick={submit}
+                  disabled={submitting}
+                  className="w-full text-center bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white text-xs font-bold py-3 px-3 rounded-lg shadow-sm transition disabled:opacity-50"
+                >
+                  {submitting ? '送信中…' : '予約を送信'}
+                </button>
+                <p className="text-[10px] text-[#a8a29e] leading-relaxed">※送信後、店舗より折り返しのご連絡をします。</p>
+              </>
+            )}
+          </div>
         </div>
-      </div>
-      <div>
-        <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">タイトル</label>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={100}
-          className="w-full border border-[#d6d3d1] rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#b8860b]"
-        />
-      </div>
-      <div>
-        <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">口コミ内容 *</label>
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          maxLength={2000}
-          rows={4}
-          className="w-full border border-[#d6d3d1] rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#b8860b] resize-none"
-        />
-      </div>
-      {error && <p className="text-xs text-red-500">{error}</p>}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={submit}
-          disabled={submitting}
-          className="flex-1 bg-[#b8860b] text-white text-xs py-2.5 rounded tracking-wider hover:bg-[#a0750a] transition disabled:opacity-50"
-        >
-          {submitting ? '送信中...' : '投稿する'}
-        </button>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="px-4 text-xs text-[#78716c] border border-[#d6d3d1] rounded hover:bg-[#fafaf9] transition"
-        >
-          閉じる
-        </button>
       </div>
     </div>
   )
@@ -336,13 +302,11 @@ export default function MitsuGirlDetail({
   brand,
   weekSchedules = [],
   weekStart = '',
-  reviews = [],
 }: {
   girl: Girl | null
   brand: Brand
   weekSchedules?: Schedule[]
   weekStart?: string
-  reviews?: Review[]
 }) {
   if (!girl) {
     return (
@@ -360,6 +324,114 @@ export default function MitsuGirlDetail({
 
   const imageUrls = getGirlImageUrls(girl)
   const extra = girl as any
+  const castExtra = extractCastProfileExtra(girl as Record<string, unknown>)
+  const hasPlayMatrix = Object.keys(castExtra.playAvailability).length > 0
+  const [reserveOpen, setReserveOpen] = useState(false)
+  const [reserveStartTime, setReserveStartTime] = useState<string>('なるべく早め')
+  const [nextAvailableText, setNextAvailableText] = useState<string>('スケジュール確認中')
+  const [courseRows, setCourseRows] = useState<Array<{ duration_minutes: number; price: number; name: string }>>([])
+  const [serviceOptions, setServiceOptions] = useState<
+    Array<{ id: number; name: string; category: string | null; price: number; duration_minutes: number }>
+  >([])
+
+  const crmCastId = useMemo(() => {
+    const raw = (girl as any)?.cast_id ?? (girl as any)?.crm_cast_id ?? girl.id
+    const n = Number(raw)
+    return Number.isFinite(n) ? n : null
+  }, [girl])
+
+  useEffect(() => {
+    let cancelled = false
+
+    // 料金表（CRM同期済みのSupabase masterを読む）
+    ;(async () => {
+      const { data } = await supabase
+        .from('store_courses')
+        .select('name,duration_minutes,price,is_active,display_order,store_code')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .order('duration_minutes', { ascending: true })
+      if (cancelled) return
+      const rows = (data ?? [])
+        .filter((r: any) => typeof r.duration_minutes === 'number' && typeof r.price === 'number')
+        .map((r: any) => ({ name: String(r.name || ''), duration_minutes: r.duration_minutes, price: r.price }))
+      setCourseRows(rows)
+    })().catch(() => {})
+
+    // 可能プレイ・オプション（CRM同期済み）
+    ;(async () => {
+      const { data } = await supabase
+        .from('service_options')
+        .select('id,name,category,price,duration_minutes,is_active,display_order')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+      if (cancelled) return
+      setServiceOptions((data ?? []) as any)
+    })().catch(() => {})
+
+    // 最短のご案内（CRMスケジュールから計算）
+    ;(async () => {
+      if (!crmCastId) return
+      const res = await fetch(`/api/crm/schedules?store_id=1`)
+      if (!res.ok) return
+      const json = await res.json()
+      const schedules = json.schedules || []
+
+      const now = new Date()
+      const jstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000)
+      const todayStr = jstNow.toISOString().slice(0, 10)
+      const curMin = jstNow.getUTCHours() * 60 + jstNow.getUTCMinutes()
+
+      const timeToMin = (t: string | null | undefined) => {
+        if (!t) return null
+        const m = String(t).match(/^(\d{1,2}):(\d{2})/)
+        if (!m) return null
+        return Number(m[1]) * 60 + Number(m[2])
+      }
+
+      let best: { date: string; start: string | null; end: string | null } | null = null
+
+      for (const day of schedules) {
+        const date = String(day.date || '')
+        if (!date) continue
+        const c = (day.casts || []).find((x: any) => Number(x.cast_id) === crmCastId)
+        if (!c) continue
+        const start = c.start_time ?? null
+        const end = c.end_time ?? null
+        if (!best) best = { date, start, end }
+        if (date < (best?.date || date)) best = { date, start, end }
+      }
+
+      if (!best) {
+        if (!cancelled) setNextAvailableText('スケジュール未掲載')
+        return
+      }
+
+      if (best.date === todayStr) {
+        const s = timeToMin(best.start)
+        const e = timeToMin(best.end)
+        if (s != null && e != null) {
+          const endMin = e <= s ? e + 24 * 60 : e
+          if (curMin < endMin) {
+            if (curMin < s) {
+              if (!cancelled) setNextAvailableText(`本日 ${String(best.start).slice(0, 5)}〜 ご案内可能`)
+            } else {
+              if (!cancelled) setNextAvailableText('🔥 本日 只今すぐご案内可能！')
+            }
+            return
+          }
+        }
+      }
+
+      const d = new Date(best.date + 'T00:00:00Z')
+      const label = `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${best.start ? String(best.start).slice(0, 5) : ''}〜 ご案内可能`
+      if (!cancelled) setNextAvailableText(label.trim())
+    })().catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [crmCastId])
 
   return (
     <main className="min-h-screen bg-white text-[#1c1917] pb-20">
@@ -389,6 +461,11 @@ export default function MitsuGirlDetail({
           </h2>
           {girl.catch_copy && (
             <p className="text-[#b8860b] text-sm mt-2 tracking-wider">{girl.catch_copy}</p>
+          )}
+          {castExtra.experienceStatus && (
+            <div className="mt-4">
+              <CastExperienceBadge status={castExtra.experienceStatus} />
+            </div>
           )}
 
           <div className="w-10 h-px bg-[#b8860b] my-8" />
@@ -467,99 +544,28 @@ export default function MitsuGirlDetail({
             )}
           </div>
 
-          {(() => {
-            const courseMaster: Record<string, any> = {
-              standard: {
-                prices: [
-                  { time: '60分', price: 12000 }, { time: '80分', price: 16000 },
-                  { time: '100分', price: 20000 }, { time: '120分', price: 24000 },
-                  { time: '150分', price: 30000 }, { time: '180分', price: 36000 },
-                ],
-                longPrices: [
-                  { time: '210', label: '210分 (ロング)', price: 42000 },
-                  { time: '240', label: '240分 (ロング)', price: 48000 },
-                  { time: '300', label: '300分 (ロング)', price: 60000 },
-                ]
-              },
-              gold: {
-                prices: [
-                  { time: '60分', price: 15000 }, { time: '80分', price: 19000 },
-                  { time: '100分', price: 23000 }, { time: '120分', price: 27000 },
-                  { time: '150分', price: 33000 }, { time: '180分', price: 39000 },
-                ],
-                longPrices: [
-                  { time: '210', label: '210分 (ロング)', price: 45000 },
-                  { time: '240', label: '240分 (ロング)', price: 51000 },
-                  { time: '300', label: '300分 (ロング)', price: 63000 },
-                ]
-              },
-              platinum: {
-                prices: [
-                  { time: '60分', price: 18000 }, { time: '80分', price: 23000 },
-                  { time: '100分', price: 28000 }, { time: '120分', price: 33000 },
-                  { time: '150分', price: 40000 }, { time: '180分', price: 48000 },
-                ],
-                longPrices: [
-                  { time: '210', label: '210分 (ロング)', price: 56000 },
-                  { time: '240', label: '240分 (ロング)', price: 64000 },
-                  { time: '300', label: '300分 (ロング)', price: 80000 },
-                ]
-              }
-            };
-
-            const activeCourse = extra?.course_type ? courseMaster[extra.course_type] : null;
-
-            // ★ データが空（未設定）の場合は「電話で確認」を表示
-            if (!activeCourse) {
-              return (
-                <div className="py-10 text-center border border-dashed border-[#d6d3d1] rounded-lg bg-[#fafaf9] mb-8">
-                  <p className="text-sm text-[#78716c] tracking-widest leading-relaxed" style={{ fontFamily: serif }}>
-                    現在コース設定中です。<br className="md:hidden" />
-                    詳細な料金につきましては、<br className="md:hidden" />お電話にてお問い合わせください。
-                  </p>
+          {courseRows.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0">
+              {courseRows.map((c) => (
+                <div
+                  key={`${c.duration_minutes}-${c.price}`}
+                  className="flex items-center justify-between border-b border-[#e7e5e4] py-3 px-1"
+                >
+                  <span className="text-sm text-[#44403c] tracking-wider">{c.duration_minutes}分</span>
+                  <span className="text-base font-bold text-[#b8860b]" style={{ fontFamily: serif }}>
+                    &yen;{c.price.toLocaleString()}
+                  </span>
                 </div>
-              );
-            }
-
-            return (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0">
-                  {activeCourse.prices.map((c: any) => (
-                    <div key={c.time} className="flex items-center justify-between border-b border-[#e7e5e4] py-3 px-1">
-                      <span className="text-sm text-[#44403c] tracking-wider">{c.time}</span>
-                      <span className="text-base font-bold text-[#b8860b]" style={{ fontFamily: serif }}>
-                        &yen;{c.price.toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                  <div className="flex items-center gap-2">
-                    <select 
-                      className="w-full text-sm border border-[#d6d3d1] bg-[#fafaf9] rounded-md px-3 py-2 text-[#44403c] focus:outline-none focus:ring-1 focus:ring-[#b8860b]"
-                      onChange={(e) => {
-                        const targetPrice = e.target.options[e.target.selectedIndex].dataset.price;
-                        const priceDisplay = document.getElementById('long-price-display');
-                        if (priceDisplay) priceDisplay.innerText = '¥' + Number(targetPrice).toLocaleString();
-                      }}
-                    >
-                      {activeCourse.longPrices.map((lp: any) => (
-                        <option key={lp.time} value={lp.time} data-price={lp.price}>
-                          {lp.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex items-center justify-end py-2 px-1 mt-2 md:mt-0">
-                    <span id="long-price-display" className="text-lg font-bold text-[#b8860b]" style={{ fontFamily: serif }}>
-                      &yen;{activeCourse.longPrices[0].price.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </>
-            );
-          })()}
+              ))}
+            </div>
+          ) : (
+            <div className="py-10 text-center border border-dashed border-[#d6d3d1] rounded-lg bg-[#fafaf9] mb-8">
+              <p className="text-sm text-[#78716c] tracking-widest leading-relaxed" style={{ fontFamily: serif }}>
+                料金表は準備中です。<br className="md:hidden" />
+                詳細はお電話にてお問い合わせください。
+              </p>
+            </div>
+          )}
 
           {/* 各種手数料 */}
           <div className="mt-6 grid grid-cols-2 gap-2">
@@ -579,22 +585,52 @@ export default function MitsuGirlDetail({
           <h3 className="text-sm tracking-[0.2em] text-[#78716c] font-bold mb-4" style={{ fontFamily: serif }}>
             対応可能プレイ・オプション
           </h3>
-          
-          {/* ★ CRMから取得した extra.play_options などの配列を展開 */}
-          {(!extra?.play_options || extra.play_options.length === 0) ? (
+
+          {hasPlayMatrix && (
+            <div className="mb-2">
+              <CastPlayMatrix availability={castExtra.playAvailability} />
+            </div>
+          )}
+
+          {serviceOptions.length > 0 && (
+            <div className={hasPlayMatrix ? 'mt-7' : ''}>
+              {hasPlayMatrix && (
+                <h4 className="text-xs tracking-[0.2em] text-[#78716c] mb-3 font-medium" style={{ fontFamily: serif }}>
+                  オプション一覧
+                </h4>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {serviceOptions.slice(0, 60).map((opt) => (
+                  <span
+                    key={opt.id}
+                    className="text-[11px] text-[#44403c] bg-[#fafaf9] border border-[#e7e5e4] rounded px-3 py-1.5 shadow-sm"
+                    title={opt.price ? `¥${opt.price.toLocaleString()}` : undefined}
+                  >
+                    {opt.name}
+                    {opt.price ? `（¥${opt.price.toLocaleString()}）` : ''}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!hasPlayMatrix &&
+            (!Array.isArray(extra.play_options) || extra.play_options.length === 0) && (
             <div className="py-6 text-center border border-dashed border-[#d6d3d1] rounded-lg bg-[#fafaf9]">
               <p className="text-xs text-[#78716c] tracking-widest" style={{ fontFamily: serif }}>
                 オプション詳細は店舗までお問い合わせください。
               </p>
             </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {extra.play_options.map((option: string, idx: number) => (
-                <span key={idx} className="text-[11px] text-[#44403c] bg-[#fafaf9] border border-[#e7e5e4] rounded px-3 py-1.5 shadow-sm">
-                  {option}
-                </span>
-              ))}
-            </div>
+          )}
+
+          {castExtra.profileQa && (
+            <>
+              <div className="w-10 h-px bg-[#b8860b]/30 my-8" />
+              <h3 className="text-sm tracking-[0.2em] text-[#78716c] font-bold mb-4" style={{ fontFamily: serif }}>
+                プロフィールQ&amp;A
+              </h3>
+              <CastProfileQA qa={castExtra.profileQa} />
+            </>
           )}
 
           {/* リアルタイム空き枠＆ワンタップ予約カレンダー */}
@@ -657,7 +693,7 @@ export default function MitsuGirlDetail({
               return "🈵 本日はご予約満了です";
             };
 
-            const nextAvailableText = getNextAvailableText(weekSchedules || []);
+            const nextAvailableTextResolved = nextAvailableText
             // --- ここまで追加・更新 ---
 
             return (
@@ -671,7 +707,7 @@ export default function MitsuGirlDetail({
                     </span>
                     <span className="text-sm font-bold">最短のご案内</span>
                   </div>
-                  <span className="text-sm font-bold text-red-700">{nextAvailableText}</span>
+                  <span className="text-sm font-bold text-red-700">{nextAvailableTextResolved}</span>
                 </div>
 
                 {/* スケジュールリスト */}
@@ -707,12 +743,19 @@ export default function MitsuGirlDetail({
                                 {schedule.start_time?.slice(0,5)}<br/>|<br/>{schedule.end_time?.slice(0,5)}
                               </span>
                               {/* ワンタップ電話予約ボタン（将来的にログイン予約へ変更予定） */}
-                              <a 
-                                href={brand?.phone ? `tel:${brand.phone}` : "#"}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const start = schedule.date
+                                    ? `${schedule.date} ${String(schedule.start_time || '').slice(0, 5)}`
+                                    : String(schedule.start_time || '')
+                                  setReserveStartTime(start.trim() || 'なるべく早め')
+                                  setReserveOpen(true)
+                                }}
                                 className="w-full text-center bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white text-[10px] font-bold py-1.5 px-2 rounded shadow-sm transition-transform active:scale-95"
                               >
                                 ここから予約
-                              </a>
+                              </button>
                             </div>
                           )}
                         </div>
@@ -726,43 +769,38 @@ export default function MitsuGirlDetail({
           
           {/* ↑↑↑ ここまで ↑↑↑ */}
 
-          {/* Reviews */}
-          <div className="w-10 h-px bg-[#b8860b]/30 my-8" />
-          <h3
-            className="text-xs tracking-[0.2em] text-[#78716c] mb-4"
-            style={{ fontFamily: serif }}
-          >
-            口コミ
-          </h3>
-          {reviews.length > 0 && (
-            <div className="mb-4">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-lg text-[#b8860b]" style={{ fontFamily: serif }}>
-                  {(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)}
-                </span>
-                <Stars count={Math.round(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length)} />
-                <span className="text-[10px] text-[#a8a29e]">({reviews.length}件)</span>
-              </div>
-              <ReviewList reviews={reviews} />
-            </div>
-          )}
-          <ReviewForm girlId={girl.id} />
+          {/* 口コミ（CRMメイン運用のため公式側では非対応） */}
 
           {/* Phone CTA */}
           {brand.phone && (
             <>
               <div className="w-10 h-px bg-[#b8860b]/30 my-8" />
-              <a
-                href={`tel:${brand.phone}`}
-                className="block text-center border border-[#b8860b]/40 text-[#b8860b] py-4 tracking-[0.2em] font-medium hover:bg-[#b8860b]/5 transition"
+              <button
+                type="button"
+                onClick={() => {
+                  setReserveStartTime('なるべく早め')
+                  setReserveOpen(true)
+                }}
+                className="w-full text-center border border-[#b8860b]/40 text-[#b8860b] py-4 tracking-[0.2em] font-medium hover:bg-[#b8860b]/5 transition"
                 style={{ fontFamily: serif }}
               >
-                &#9742; {girl.name}を予約する
-              </a>
+                {girl.name}を予約する
+              </button>
             </>
           )}
         </div>
       </div>
+
+      <ReserveModal
+        open={reserveOpen}
+        onClose={() => {
+          setReserveOpen(false)
+          setReserveStartTime('なるべく早め')
+        }}
+        castId={String(girl.id)}
+        castName={girl.name}
+        startTime={reserveStartTime}
+      />
     </main>
   )
 }

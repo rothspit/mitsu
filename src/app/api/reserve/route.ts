@@ -6,14 +6,10 @@ interface ReservationData {
     id: string
     name: string
   }
-  course: {
-    name: string
-    time: string
-    price: number
-  }
   startTime: string
   phone: string
-  usePoints: boolean
+  message?: string
+  sourceUrl?: string
   timestamp: string
 }
 
@@ -22,7 +18,7 @@ export async function POST(request: NextRequest) {
     const data: ReservationData = await request.json()
 
     // バリデーション
-    if (!data.cast?.name || !data.course?.name || !data.startTime || !data.phone) {
+    if (!data.cast?.name || !data.startTime || !data.phone) {
       return NextResponse.json(
         { error: '必須項目が不足しています' },
         { status: 400 }
@@ -38,72 +34,41 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Discord Webhook URL
-    const webhookUrl = process.env.DISCORD_WEBHOOK_URL
-
-    // 料金計算
-    const finalPrice = data.usePoints ? data.course.price - 2000 : data.course.price
-
-    // Discordメッセージを構築
-    const discordMessage = {
-      content: '🚨 **新規予約リクエスト** 🚨',
-      embeds: [
-        {
-          color: 0xff69b4, // ピンク色
-          fields: [
-            {
-              name: '👸 指名',
-              value: data.cast.name,
-              inline: true,
-            },
-            {
-              name: '⏱ コース',
-              value: `${data.course.name}（${data.course.time}）`,
-              inline: true,
-            },
-            {
-              name: '🕐 希望時間',
-              value: data.startTime,
-              inline: true,
-            },
-            {
-              name: '📞 電話番号',
-              value: data.phone,
-              inline: true,
-            },
-            {
-              name: '💰 料金',
-              value: `¥${finalPrice.toLocaleString()}${data.usePoints ? ' (2,000pt利用)' : ''}`,
-              inline: true,
-            },
-          ],
-          footer: {
-            text: '※至急折り返し連絡をお願いします',
-          },
-          timestamp: data.timestamp || new Date().toISOString(),
-        },
-      ],
+    // CRMへ転送（公式はCRMメイン運用）
+    const crmUrl = process.env.CRM_RESERVE_URL
+    if (!crmUrl) {
+      console.warn('[reserve] CRM_RESERVE_URL is not set. Request accepted but not forwarded.')
+      return NextResponse.json({
+        success: true,
+        message: '予約リクエストを受け付けました（転送先未設定）',
+        reservationId: `RES-${Date.now()}`,
+      })
     }
 
-    // Discord Webhookが設定されている場合は送信
-    if (webhookUrl) {
-      const discordResponse = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(discordMessage),
-      })
+    const secret = process.env.CRM_RESERVE_SECRET
+    const forwarded = {
+      store_id: 1,
+      cast_id: data.cast.id,
+      cast_name: data.cast.name,
+      start_time: data.startTime,
+      phone: data.phone,
+      message: data.message || null,
+      source_url: data.sourceUrl || null,
+      requested_at: data.timestamp || new Date().toISOString(),
+    }
 
-      if (!discordResponse.ok) {
-        console.error('Discord webhook error:', await discordResponse.text())
-        // Discordエラーでも予約自体は成功扱いにする（ログは残す）
-      }
-    } else {
-      // Webhook URLが未設定の場合はコンソールに出力（開発用）
-      console.log('=== 予約リクエスト受信（Discord未設定）===')
-      console.log(JSON.stringify(data, null, 2))
-      console.log('Discord Message:', JSON.stringify(discordMessage, null, 2))
+    const res = await fetch(crmUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(secret ? { 'x-sync-secret': secret } : {}),
+      },
+      body: JSON.stringify(forwarded),
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      console.error('[reserve] CRM forward failed:', res.status, text)
+      return NextResponse.json({ error: 'CRM転送に失敗しました' }, { status: 502 })
     }
 
     return NextResponse.json({

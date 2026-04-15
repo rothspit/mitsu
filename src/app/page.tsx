@@ -1,9 +1,7 @@
 import Link from 'next/link'
 import { getBrand } from '@/lib/brand/get-brand'
 import { getTodaySchedule, getDiariesByBrand } from '@/lib/brand/brand-queries'
-import { countHitomitsuActiveGirls, fetchHitomitsuGirlsSortedByScheduleCount } from '@/lib/brand/hitomitsu-girls'
-import type { Girl, Schedule, Diary } from '@/lib/brand/brand-queries'
-import { getGirlImageUrl } from '@/lib/brand/image-utils'
+import type { Diary } from '@/lib/brand/brand-queries'
 import ScheduleSection from './components/ScheduleSection'
 import StoreAreaNav from '@/components/StoreAreaNav'
 import OtherAreaLinks from '@/components/OtherAreaLinks'
@@ -66,56 +64,25 @@ function DiaryCard({ diary }: { diary: Diary }) {
   )
 }
 
-function GirlCard({ girl }: { girl: Girl }) {
-  const imageUrl = getGirlImageUrl(girl)
-
-  return (
-    <Link
-      href={`/girls/${girl.id}`}
-      className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition group"
-    >
-      <div className="aspect-[3/4] bg-[#f5f5f4] flex items-center justify-center overflow-hidden">
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={girl.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
-          <span className="text-4xl opacity-15">👤</span>
-        )}
-      </div>
-      <div className="p-3">
-        <p className="text-sm font-medium text-[#1c1917]" style={{ fontFamily: serif }}>
-          {girl.name}
-        </p>
-        {girl.age && <p className="text-[10px] text-[#78716c] mt-0.5">{girl.age}歳</p>}
-        {girl.catch_copy && (
-          <p className="text-[10px] text-[#78716c] mt-1 truncate">{girl.catch_copy}</p>
-        )}
-      </div>
-    </Link>
-  )
-}
-
 // ============================================
 // メインページ
 // ============================================
 
 export default async function MitsuPage() {
-  const [brand, schedules, diaries, girls, girlsCount] = await Promise.all([
+  const [brand, schedules, diaries] = await Promise.all([
     getBrand(SLUG),
     getTodaySchedule(SLUG),
     getDiariesByBrand({ limit: 8, forceSlug: SLUG }),
-    fetchHitomitsuGirlsSortedByScheduleCount({ limit: 12 }),
-    countHitomitsuActiveGirls(),
   ])
+
+  const taglineRaw = brand.site_tagline || '大人の極上癒やし'
+  const tagline = '極上の癒しを求道'
 
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
     name: '人妻の蜜',
-    description: brand.description || brand.site_tagline || '大人の甘い誘惑…',
+    description: brand.description || tagline || '甘い誘惑…',
     url: 'https://h-mitsu.com',
     telephone: brand.phone || undefined,
     address: {
@@ -161,21 +128,17 @@ export default async function MitsuPage() {
         </h2>
         <div className="w-12 h-px bg-[#b8860b] mx-auto mb-6" />
         <p className="text-[#78716c] text-sm tracking-wider leading-relaxed">
-          {brand.site_tagline || '大人の極上癒やし'}
+          {tagline}
         </p>
         {brand.area && (
           <p className="text-[#a8a29e] text-xs mt-3 tracking-wider">{brand.area}</p>
         )}
 
-        <div className="mt-8 flex items-center justify-center flex-wrap gap-2">
-          <WaitLocationPin label="西船橋" title="西船橋エリア" href="/nishifuna" />
-          <WaitLocationPin label="葛西" title="葛西エリア" href="/kasai" />
-          <WaitLocationPin label="錦糸町" title="錦糸町エリア" href="/kinshicho" />
-        </div>
+        {/* 下に出勤情報セクションがあるため、ここでは導線を置かない */}
       </section>
 
       {/* ===== 出勤情報（日付切り替え対応） ===== */}
-      <ScheduleSection brandId={brand.id} initialSchedules={schedules} />
+      <ScheduleSection brandId={brand.id} initialSchedules={schedules} locationPinLabel="西船橋" />
 
       {/* ===== 写メ日記 ===== */}
       <section className="py-16">
@@ -203,30 +166,57 @@ export default async function MitsuPage() {
         </div>
       </section>
 
-      {/* ===== 在籍キャスト ===== */}
+      {/* ===== エリア別入口（トップはダイジェストに徹する） ===== */}
       <section className="py-16 bg-[#fafaf9]">
         <div className="max-w-2xl mx-auto px-4">
-          <SectionHeading>在籍キャスト</SectionHeading>
-          <p className="text-center text-[#b8860b] text-sm tracking-wider mb-6">在籍 {girlsCount}名</p>
-          {girls.length > 0 ? (
-            <>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {girls.map((g) => (
-                  <GirlCard key={g.id} girl={g} />
-                ))}
-              </div>
-              <div className="mt-10 text-center">
-                <Link
-                  href="/cast"
-                  className="inline-block border border-[#b8860b]/30 text-[#b8860b] text-xs px-8 py-3 tracking-[0.15em] hover:bg-[#b8860b]/5 transition"
-                >
-                  すべて見る
-                </Link>
-              </div>
-            </>
-          ) : (
-            <p className="text-center text-[#a8a29e] text-sm py-8">準備中</p>
-          )}
+          <SectionHeading>エリアを選ぶ</SectionHeading>
+          <p className="text-center text-[#78716c] text-xs tracking-wider mb-8">
+            在籍・出勤情報は各店舗ページでご確認ください。
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              {
+                href: '/nishifuna',
+                title: '西船橋',
+                desc: '西船橋店の出勤情報',
+              },
+              {
+                href: '/kasai',
+                title: '葛西',
+                desc: '葛西店の出勤情報',
+              },
+              {
+                href: '/kinshicho',
+                title: '錦糸町',
+                desc: '錦糸町店の出勤情報',
+              },
+            ].map((a) => (
+              <Link
+                key={a.href}
+                href={a.href}
+                className="bg-white rounded-xl border border-[#b8860b]/20 shadow-sm hover:shadow-md transition p-5"
+              >
+                <p className="text-xs text-[#b8860b] tracking-[0.25em] mb-2" style={{ fontFamily: serif }}>
+                  AREA
+                </p>
+                <p className="text-base font-medium tracking-wider text-[#1c1917]" style={{ fontFamily: serif }}>
+                  {a.title}
+                </p>
+                <p className="text-[11px] text-[#78716c] mt-2 tracking-wider">{a.desc}</p>
+                <p className="text-[11px] text-[#b8860b] mt-4 tracking-wider">見る →</p>
+              </Link>
+            ))}
+          </div>
+
+          <div className="mt-10 text-center">
+            <Link
+              href="/schedule"
+              className="inline-block border border-[#b8860b]/30 text-[#b8860b] text-xs px-8 py-3 tracking-[0.15em] hover:bg-[#b8860b]/5 transition"
+            >
+              出勤情報（総合）を見る
+            </Link>
+          </div>
         </div>
       </section>
 

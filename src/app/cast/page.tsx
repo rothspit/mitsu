@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { getBrand } from '@/lib/brand/get-brand'
+import { getGirlsByBrand } from '@/lib/brand/brand-queries'
 import type { Girl } from '@/lib/brand/brand-queries'
 import { getGirlImageUrl } from '@/lib/brand/image-utils'
-import { fetchHitomitsuGirlsSortedByScheduleCount } from '@/lib/brand/hitomitsu-girls'
 
 export const revalidate = 60
 
@@ -64,7 +64,7 @@ function GirlCard({ girl }: { girl: Girl }) {
 
 export default async function MitsuCastPage() {
   const brand = await getBrand(SLUG)
-  const girls = await fetchHitomitsuGirlsSortedByScheduleCount()
+  const girls = await getGirlsByBrand({ forceSlug: SLUG })
 
   return (
     <main className="min-h-screen bg-[#fafaf9] text-[#1c1917] pb-20">
