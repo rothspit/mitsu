@@ -25,19 +25,22 @@ const notoSans = Noto_Sans_JP({
 
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand(SLUG)
+  const siteTitle = '【公式】人妻の蜜（ひとづまのみつ）| 西船橋・葛西・錦糸町のデリヘル'
+  const siteDescription =
+    '西船橋・葛西・錦糸町で人妻・熟女デリヘルをお探しなら「人妻の蜜」。厳選キャストが極上の癒やしをお届け。出勤情報・写メ日記も毎日更新。'
   return {
     title: {
-      template: '%s｜人妻の蜜',
-      default: '人妻の蜜｜西船橋・葛西・錦糸町の熟女・人妻デリヘル',
+      template: '%s | 人妻の蜜（ひとづまのみつ）',
+      default: siteTitle,
     },
-    description: '西船橋・葛西・錦糸町エリアの人妻・熟女専門デリヘル「人妻の蜜」。30代・40代・50代の魅力的な大人の女性が多数在籍。出張エリアも充実。',
+    description: siteDescription,
     keywords: ['デリヘル', '人妻', '熟女', '西船橋', '葛西', '錦糸町', '市川', '幕張', '出張'],
     alternates: {
       canonical: 'https://h-mitsu.com',
     },
     openGraph: {
-      title: '人妻の蜜｜西船橋・葛西・錦糸町の熟女・人妻デリヘル',
-      description: '西船橋・葛西・錦糸町エリアの人妻・熟女専門デリヘル。30代〜50代の魅力的な大人の女性が多数在籍。',
+      title: siteTitle,
+      description: siteDescription,
       siteName: brand.name,
       locale: 'ja_JP',
       type: 'website',
@@ -45,8 +48,8 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
-      title: '人妻の蜜｜西船橋・葛西・錦糸町の熟女・人妻デリヘル',
-      description: '西船橋・葛西・錦糸町エリアの人妻・熟女専門デリヘル。30代〜50代の魅力的な大人の女性が多数在籍。',
+      title: siteTitle,
+      description: siteDescription,
       images: ['/main_mitsu.jpg'],
     },
   }
