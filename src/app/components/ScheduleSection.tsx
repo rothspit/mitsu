@@ -161,11 +161,14 @@ export default function ScheduleSection({
   brandId,
   initialSchedules,
   locationPinLabel,
+  storeId,
 }: {
   brandId: string
   initialSchedules: Schedule[]
   locationPinLabel?: React.ReactNode
+  storeId?: number | string
 }) {
+  const sid = useMemo(() => (storeId != null ? Number(storeId) : 1), [storeId])
   const today = useMemo(() => businessDate(), [])
   const [selectedDate, setSelectedDate] = useState(today)
   const [windowStart, setWindowStart] = useState(today)
@@ -195,7 +198,7 @@ export default function ScheduleSection({
     }
     setLoading(true)
     try {
-      const res = await fetch(`https://crm.h-mitsu.com/api/idol/schedules?store_id=1&date=${selectedDate}`)
+      const res = await fetch(`https://crm.h-mitsu.com/api/idol/schedules?store_id=${sid}&date=${selectedDate}`)
       if (!res.ok) throw new Error('API format mismatch')
       const json = await res.json()
       
@@ -227,7 +230,7 @@ export default function ScheduleSection({
       setSchedules([])
     }
     setLoading(false)
-  }, [brandId, selectedDate, today, initialSchedules])
+  }, [brandId, selectedDate, today, initialSchedules, sid])
 
   useEffect(() => {
     fetchSchedules()
@@ -249,7 +252,7 @@ export default function ScheduleSection({
           const i = idx++
           const date = days[i]
           try {
-            const res = await fetch(`https://crm.h-mitsu.com/api/idol/schedules?store_id=1&date=${date}`)
+            const res = await fetch(`https://crm.h-mitsu.com/api/idol/schedules?store_id=${sid}&date=${date}`)
             if (!res.ok) continue
             const json = await res.json()
             const dayData = (json.schedules || []).find((s: any) => s.date === date)
@@ -266,7 +269,7 @@ export default function ScheduleSection({
     } finally {
       setMonthLoading(false)
     }
-  }, [calendarWeeks, today])
+  }, [calendarWeeks, today, sid])
 
   useEffect(() => {
     if (viewMode === 'month') fetchMonthCounts()

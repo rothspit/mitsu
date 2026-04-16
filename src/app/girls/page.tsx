@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { getBrand } from '@/lib/brand/get-brand'
 import { getGirlsByBrand } from '@/lib/brand/brand-queries'
 import type { Girl } from '@/lib/brand/brand-queries'
-import { getGirlImageUrl } from '@/lib/brand/image-utils'
+import GirlCard from '@/components/GirlCard'
 
 export const revalidate = 60
 
@@ -32,37 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-function GirlCard({ girl }: { girl: Girl }) {
-  const imageUrl = getGirlImageUrl(girl)
-
-  return (
-    <Link
-      href={`/girls/${girl.id}`}
-      className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition group"
-    >
-      <div className="aspect-[3/4] bg-[#f5f5f4] flex items-center justify-center overflow-hidden">
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={girl.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
-          <span className="text-5xl opacity-10">👤</span>
-        )}
-      </div>
-      <div className="p-3">
-        <p className="text-sm font-medium text-[#1c1917]" style={{ fontFamily: serif }}>
-          {girl.name}
-        </p>
-        {girl.age && <p className="text-[10px] text-[#78716c] mt-0.5">{girl.age}歳</p>}
-        {girl.catch_copy && (
-          <p className="text-[10px] text-[#78716c] mt-1 truncate">{girl.catch_copy}</p>
-        )}
-      </div>
-    </Link>
-  )
-}
+// use shared GirlCard component
 
 export default async function MitsuGirlsPage() {
   const [brand, girls] = await Promise.all([

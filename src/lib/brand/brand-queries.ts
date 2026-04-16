@@ -64,7 +64,7 @@ export interface Diary {
 }
 
 const API_BASE_URL = 'https://crm.h-mitsu.com/api'
-const STORE_ID = 1 // H-Mitsu store ID
+const DEFAULT_STORE_ID = 1 // H-Mitsu store ID (fallback)
 
 // ============================================
 // Girls
@@ -75,6 +75,7 @@ export async function getGirlsByBrand(opts?: {
   status?: string
   forceSlug?: string
   includeInactive?: boolean
+  storeId?: number | string
   /**
    * 返却前に除外したいCRM status（例: ['退店']）
    * `status` オプション（=指定statusのみ抽出）よりも先に適用されます。
@@ -82,7 +83,8 @@ export async function getGirlsByBrand(opts?: {
   excludeStatuses?: string[]
 }): Promise<Girl[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/idol/casts?store_id=${STORE_ID}`, {
+    const storeId = opts?.storeId != null ? Number(opts.storeId) : DEFAULT_STORE_ID
+    const res = await fetch(`${API_BASE_URL}/idol/casts?store_id=${storeId}`, {
       next: { revalidate: 60 } // Cache for 1 minute
     })
     if (!res.ok) throw new Error('Failed to fetch casts')
@@ -110,7 +112,7 @@ export async function getGirlsByBrand(opts?: {
       return {
         ...c,
         id: canonicalId,
-        brand_id: String(STORE_ID),
+        brand_id: String(storeId),
         // CRM連動: 退店は非表示（inactive）。
         // 「お休み中」は在籍扱いで表示したい運用が多いため active のままにする。
         is_active: crmStatus !== '退店',
@@ -216,7 +218,7 @@ export async function getGirlById(id: string, forceSlug?: string): Promise<Girl 
 // Schedules
 // ============================================
 
-export async function getTodaySchedule(forceSlug?: string): Promise<Schedule[]> {
+export async function getTodaySchedule(forceSlug?: string, storeId?: number | string): Promise<Schedule[]> {
   // JST (UTC+9) で朝8時基準の営業日を取得
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000)
   if (jstNow.getUTCHours() < 8) {
@@ -224,12 +226,16 @@ export async function getTodaySchedule(forceSlug?: string): Promise<Schedule[]> 
   }
   const today = jstNow.toISOString().slice(0, 10) // YYYY-MM-DD
 
-  return getScheduleByDate(today, forceSlug)
+  return getScheduleByDate(today, { forceSlug, storeId })
 }
 
-export async function getScheduleByDate(date: string, forceSlug?: string): Promise<Schedule[]> {
+export async function getScheduleByDate(
+  date: string,
+  opts?: { forceSlug?: string; storeId?: number | string }
+): Promise<Schedule[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/idol/schedules?store_id=${STORE_ID}&date=${date}`, {
+    const storeId = opts?.storeId != null ? Number(opts.storeId) : DEFAULT_STORE_ID
+    const res = await fetch(`${API_BASE_URL}/idol/schedules?store_id=${storeId}&date=${date}`, {
       next: { revalidate: 60 }
     })
     if (!res.ok) throw new Error('Failed to fetch schedules')
@@ -241,7 +247,7 @@ export async function getScheduleByDate(date: string, forceSlug?: string): Promi
     return dayData.casts.map((c: any) => ({
       id: `${date}-${c.id}`,
       girl_id: String(c.cast_id),
-      brand_id: String(STORE_ID),
+      brand_id: String(storeId),
       date: date,
       start_time: c.start_time,
       end_time: c.end_time,
@@ -250,7 +256,7 @@ export async function getScheduleByDate(date: string, forceSlug?: string): Promi
         id: String(c.cast_id),
         name: c.name,
         images: [c.idol_image_path || c.image].filter(Boolean),
-        brand_id: String(STORE_ID),
+        brand_id: String(storeId),
         is_active: true,
         created_at: '',
         updated_at: ''
@@ -262,9 +268,15 @@ export async function getScheduleByDate(date: string, forceSlug?: string): Promi
   }
 }
 
-export async function getWeekScheduleByGirl(girlId: string, weekStart: string, forceSlug?: string): Promise<Schedule[]> {
+export async function getWeekScheduleByGirl(
+  girlId: string,
+  weekStart: string,
+  forceSlug?: string,
+  storeId?: number | string
+): Promise<Schedule[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/idol/schedules?store_id=${STORE_ID}`, {
+    const sid = storeId != null ? Number(storeId) : DEFAULT_STORE_ID
+    const res = await fetch(`${API_BASE_URL}/idol/schedules?store_id=${sid}`, {
       next: { revalidate: 60 }
     })
     if (!res.ok) throw new Error('Failed to fetch schedules')
@@ -278,7 +290,7 @@ export async function getWeekScheduleByGirl(girlId: string, weekStart: string, f
         schedules.push({
           id: `${day.date}-${castSchedule.id}`,
           girl_id: String(castSchedule.cast_id),
-          brand_id: String(STORE_ID),
+          brand_id: String(sid),
           date: day.date,
           start_time: castSchedule.start_time,
           end_time: castSchedule.end_time,
@@ -301,9 +313,11 @@ export async function getDiariesByBrand(opts?: {
   limit?: number
   category?: string
   forceSlug?: string
+  storeId?: number | string
 }): Promise<Diary[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/idol/diaries?store_id=${STORE_ID}`, {
+    const storeId = opts?.storeId != null ? Number(opts.storeId) : DEFAULT_STORE_ID
+    const res = await fetch(`${API_BASE_URL}/idol/diaries?store_id=${storeId}`, {
       next: { revalidate: 60 }
     })
     if (!res.ok) throw new Error('Failed to fetch diaries')
@@ -311,7 +325,7 @@ export async function getDiariesByBrand(opts?: {
     const data = await res.json()
     let diaries: Diary[] = (data.diaries || []).map((d: any) => ({
       id: String(d.id),
-      brand_id: String(STORE_ID),
+      brand_id: String(storeId),
       girl_id: String(d.cast_id),
       slug: String(d.id),
       title: d.title,
@@ -325,7 +339,7 @@ export async function getDiariesByBrand(opts?: {
         id: String(d.cast_id),
         name: d.cast_name,
         images: d.cast_image ? [d.cast_image] : [],
-        brand_id: String(STORE_ID),
+        brand_id: String(storeId),
         is_active: true,
         created_at: '',
         updated_at: ''
