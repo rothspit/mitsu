@@ -30,7 +30,7 @@ export default async function NishifunaPage() {
 
       <section className="max-w-2xl mx-auto px-4 pt-5">
         <p className="text-xs text-[#44403c] leading-relaxed tracking-wider">
-          西船橋駅周辺のホテルへ即配。船橋市・市川市方面も送迎対応でご案内します。
+          西船橋駅周辺のホテルへ即派遣。船橋・幕張・市川市方面も送迎対応でご案内します。
         </p>
         <div className="mt-2 text-[11px] text-[#78716c] tracking-wider">
           <Link href="/kasai" className="hover:text-[#b8860b] underline-offset-2 hover:underline">

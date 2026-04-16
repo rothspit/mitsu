@@ -30,10 +30,10 @@ export default async function KinshichoPage() {
 
       <section className="max-w-2xl mx-auto px-4 pt-5">
         <p className="text-xs text-[#44403c] leading-relaxed tracking-wider">
-          錦糸町駅周辺のホテルへ即配。墨田区・江東区エリアも送迎対応でご案内します。
+          錦糸町駅周辺のホテルへ即派遣。墨田区・江東区エリアも送迎対応でご案内します。
         </p>
         <p className="mt-2 text-[11px] text-[#78716c] leading-relaxed tracking-wider">
-          錦糸町店は新規オープンにつき、当面の在籍は「ゆい」さんからご案内予定です。
+          錦糸町店は新規プレオープン予定です。
         </p>
         <div className="mt-2 text-[11px] text-[#78716c] tracking-wider">
           <Link href="/nishifuna" className="hover:text-[#b8860b] underline-offset-2 hover:underline">
