@@ -1,10 +1,9 @@
 import Link from 'next/link'
 import { getBrand } from '@/lib/brand/get-brand'
-import { getGirlsByBrand, getTodaySchedule } from '@/lib/brand/brand-queries'
+import { getTodaySchedule } from '@/lib/brand/brand-queries'
 import ScheduleSection from '../components/ScheduleSection'
 import StoreAreaNav from '@/components/StoreAreaNav'
 import OtherAreaLinks from '@/components/OtherAreaLinks'
-import GirlCard from '@/components/GirlCard'
 import { STORE_ID_BY_KEY } from '@/lib/store-map'
 
 export const revalidate = 60
@@ -14,11 +13,7 @@ const serif = "var(--font-noto-serif), 'Noto Serif JP', serif"
 
 export default async function KinshichoPage() {
   const storeId = STORE_ID_BY_KEY.kinshicho
-  const [brand, schedules, girls] = await Promise.all([
-    getBrand(SLUG),
-    getTodaySchedule(SLUG, storeId),
-    getGirlsByBrand({ forceSlug: SLUG, storeId }),
-  ])
+  const [brand, schedules] = await Promise.all([getBrand(SLUG), getTodaySchedule(SLUG, storeId)])
 
   return (
     <main className="min-h-screen bg-white text-[#1c1917] pb-20">
@@ -55,22 +50,24 @@ export default async function KinshichoPage() {
         </div>
       </section>
 
-      <section className="max-w-2xl mx-auto px-4 pt-10">
-        <h2 className="text-sm tracking-[0.2em] text-[#1c1917] mb-6" style={{ fontFamily: serif }}>
-          在籍一覧
-        </h2>
-        {girls.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {girls.map((g) => (
-              <GirlCard key={g.id} girl={g} />
-            ))}
-          </div>
-        ) : (
-          <p className="text-[#a8a29e] text-sm py-6">準備中</p>
-        )}
-      </section>
-
       <ScheduleSection brandId={brand.id} initialSchedules={schedules} storeId={storeId} />
+
+      <div className="max-w-2xl mx-auto px-4 pt-10">
+        <Link
+          href="/kinshicho/cast"
+          className="block bg-[#fafaf9] border border-[#b8860b]/20 rounded-xl p-5 shadow-sm hover:shadow-md transition"
+        >
+          <p className="text-[10px] text-[#b8860b] tracking-[0.3em] mb-2" style={{ fontFamily: serif }}>
+            CAST LIST
+          </p>
+          <p className="text-sm text-[#1c1917] tracking-wider" style={{ fontFamily: serif }}>
+            在籍一覧を見る →
+          </p>
+          <p className="text-[11px] text-[#78716c] mt-2 tracking-wider">
+            在籍キャストのプロフィールはこちら
+          </p>
+        </Link>
+      </div>
 
       <div className="max-w-2xl mx-auto px-4">
         <OtherAreaLinks />
