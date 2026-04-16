@@ -189,30 +189,47 @@ function ReserveModal({
   castName: string
   startTime: string
 }) {
-  const [phone, setPhone] = useState('')
-  const [message, setMessage] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [customerName, setCustomerName] = useState('')
+  const [placeType, setPlaceType] = useState<'home' | 'hotel' | 'meetup'>('hotel')
+  const [placeDetail, setPlaceDetail] = useState('')
+  const [nominationType, setNominationType] = useState<'free' | 'photo' | 'main'>('photo')
+  const [courseMinutes, setCourseMinutes] = useState<number>(90)
+  const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
 
   const submit = useCallback(async () => {
     setError('')
-    if (!phone.trim()) {
+    if (!customerPhone.trim()) {
       setError('電話番号を入力してください')
       return
     }
+    // startTime から date / in_time を取り出す（"YYYY-MM-DD HH:MM" を優先）
+    const m = String(startTime).match(/^(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})/)
+    const nowJst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+    const date = m?.[1] ?? nowJst.toISOString().slice(0, 10)
+    const inTime = m?.[2] ?? ''
     setSubmitting(true)
     try {
       const res = await fetch('/api/reserve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cast: { id: castId, name: castName },
-          startTime,
-          phone: phone.trim(),
-          message: message.trim() || null,
-          sourceUrl: typeof window !== 'undefined' ? window.location.href : null,
-          timestamp: new Date().toISOString(),
+          store_id: 1,
+          date,
+          in_time: inTime,
+          place_type: placeType,
+          place_detail: placeDetail.trim() || null,
+          nomination_type: nominationType,
+          course_minutes: courseMinutes,
+          customer_phone: customerPhone.trim(),
+          customer_name: customerName.trim() || null,
+          cast_id: Number.isFinite(Number(castId)) ? Number(castId) : null,
+          cast_name: castName,
+          notes: notes.trim() || null,
+          source_url: typeof window !== 'undefined' ? window.location.href : null,
         }),
       })
       const json = await res.json().catch(() => ({}))
@@ -223,7 +240,7 @@ function ReserveModal({
     } finally {
       setSubmitting(false)
     }
-  }, [castId, castName, startTime, phone, message])
+  }, [castId, castName, startTime, customerPhone, customerName, placeType, placeDetail, nominationType, courseMinutes, notes])
 
   if (!open) return null
 
@@ -259,22 +276,79 @@ function ReserveModal({
             ) : (
               <>
                 <div>
+                  <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">お名前（任意）</label>
+                  <input
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="山田"
+                    className="w-full border border-[#d6d3d1] rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#b8860b]"
+                  />
+                </div>
+                <div>
                   <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">電話番号 *</label>
                   <input
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
                     inputMode="tel"
                     placeholder="090-1234-5678"
                     className="w-full border border-[#d6d3d1] rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#b8860b]"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">メッセージ（任意）</label>
+                  <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">場所 *</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      value={placeType}
+                      onChange={(e) => setPlaceType(e.target.value as any)}
+                      className="w-full border border-[#d6d3d1] rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#b8860b]"
+                    >
+                      <option value="home">自宅</option>
+                      <option value="hotel">ホテル</option>
+                      <option value="meetup">待ち合わせ</option>
+                    </select>
+                    <input
+                      value={placeDetail}
+                      onChange={(e) => setPlaceDetail(e.target.value)}
+                      placeholder="例）錦糸町駅付近"
+                      className="w-full border border-[#d6d3d1] rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#b8860b]"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">指名 *</label>
+                    <select
+                      value={nominationType}
+                      onChange={(e) => setNominationType(e.target.value as any)}
+                      className="w-full border border-[#d6d3d1] rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#b8860b]"
+                    >
+                      <option value="free">フリー</option>
+                      <option value="photo">写真指名</option>
+                      <option value="main">本指名</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">コース *</label>
+                    <select
+                      value={courseMinutes}
+                      onChange={(e) => setCourseMinutes(Number(e.target.value))}
+                      className="w-full border border-[#d6d3d1] rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#b8860b]"
+                    >
+                      {[60, 90, 120, 150, 180].map((m) => (
+                        <option key={m} value={m}>
+                          {m}分
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#a8a29e] tracking-wider block mb-1">備考（任意）</label>
                   <textarea
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
                     rows={3}
-                    placeholder="ご希望があれば入力してください"
+                    placeholder="到着5分前に電話ください など"
                     className="w-full border border-[#d6d3d1] rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#b8860b] resize-none"
                   />
                 </div>
