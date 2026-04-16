@@ -190,19 +190,41 @@ export default async function MitsuPage() {
                 href: '/kinshicho',
                 title: '錦糸町',
                 desc: '錦糸町店の出勤情報',
+                highlight: true,
+                ribbonText: 'PRE OPEN',
               },
             ].map((a) => (
               <Link
                 key={a.href}
                 href={a.href}
-                className="bg-white rounded-xl border border-[#b8860b]/20 shadow-sm hover:shadow-md transition p-5"
+                aria-label={`${a.title}（${a.desc}）`}
+                className={`relative overflow-hidden bg-white rounded-xl shadow-sm hover:shadow-md transition p-5 ${
+                  a.highlight
+                    ? 'border border-[#b8860b]/45 ring-1 ring-[#b8860b]/15'
+                    : 'border border-[#b8860b]/20'
+                }`}
               >
+                {a.ribbonText ? (
+                  <span
+                    className="pointer-events-none absolute -right-10 top-5 w-40 rotate-45 bg-gradient-to-r from-[#b8860b] to-[#d4a84b] py-1 text-center text-[9px] font-bold tracking-[0.35em] text-white shadow-sm"
+                    aria-hidden
+                  >
+                    {a.ribbonText}
+                  </span>
+                ) : null}
                 <p className="text-xs text-[#b8860b] tracking-[0.25em] mb-2" style={{ fontFamily: serif }}>
                   AREA
                 </p>
-                <p className="text-base font-medium tracking-wider text-[#1c1917]" style={{ fontFamily: serif }}>
-                  {a.title}
-                </p>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-base font-medium tracking-wider text-[#1c1917]" style={{ fontFamily: serif }}>
+                    {a.title}
+                  </p>
+                  {a.highlight ? (
+                    <span className="shrink-0 rounded-full border border-[#b8860b]/35 bg-[#b8860b]/10 px-2 py-0.5 text-[9px] font-semibold tracking-wider text-[#8a6a1d]">
+                      プレオープン
+                    </span>
+                  ) : null}
+                </div>
                 <p className="text-[11px] text-[#78716c] mt-2 tracking-wider">{a.desc}</p>
                 <p className="text-[11px] text-[#b8860b] mt-4 tracking-wider">見る →</p>
               </Link>
