@@ -1,6 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
+
+const NISHIFUNA_EXTRA_LINKS = [
+  {
+    href: 'https://www.cityheaven.net/chiba/A1202/A120201/shop-list/biz6/',
+    label: '\u30d8\u30d6\u30f3\u30cd\u30c3\u30c8\u7248\u306f\u3053\u3061\u3089',
+  },
+  {
+    href: 'https://www.girlsheaven-job.net/chiba/ma-158/sa-306/',
+    label: '女性求人（ヘブン版）はこちら',
+  },
+] as const
 
 function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'))
@@ -13,6 +25,8 @@ function setCookie(name: string, value: string, days: number) {
 }
 
 export default function AgeVerification() {
+  const pathname = usePathname()
+  const showNishifunaLinks = pathname === '/nishifuna'
   const [visible, setVisible] = useState(false)
   const [fadeOut, setFadeOut] = useState(false)
 
@@ -45,7 +59,7 @@ export default function AgeVerification() {
       <div className="absolute inset-0 bg-black/80" />
 
       {/* カード */}
-      <div className="relative w-[90%] max-w-sm rounded-xl overflow-hidden shadow-2xl">
+      <div className="relative w-[90%] max-w-sm max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl">
         {/* ヘッダー */}
         <div
           className="px-6 pt-8 pb-4 text-center"
@@ -77,11 +91,12 @@ export default function AgeVerification() {
             className="text-sm mb-1 font-medium"
             style={{ color: '#e8d5b7' }}
           >
-            年齢確認
+            {'\u5e74\u9f62\u78ba\u8a8d'}
           </p>
           <p className="text-xs mb-6" style={{ color: '#a09080' }}>
-            当サイトは18歳未満の方の閲覧を禁止しております。<br />
-            あなたは18歳以上ですか？
+            {'\u5f53\u30b5\u30a4\u30c8\u306f18\u6b73\u672a\u6e80\u306e\u65b9\u306e\u95b2\u89a7\u3092\u7981\u6b62\u3057\u3066\u304a\u308a\u307e\u3059\u3002'}
+            <br />
+            {'\u3042\u306a\u305f\u306f18\u6b73\u4ee5\u4e0a\u3067\u3059\u304b\uff1f'}
           </p>
 
           <div className="flex flex-col gap-3">
@@ -94,7 +109,7 @@ export default function AgeVerification() {
                 boxShadow: '0 2px 12px #d4af3744',
               }}
             >
-              18歳以上です ― ENTER
+              {'18\u6b73\u4ee5\u4e0a\u3067\u3059 \u2015 ENTER'}
             </button>
             <button
               onClick={handleReject}
@@ -105,9 +120,54 @@ export default function AgeVerification() {
                 background: 'transparent',
               }}
             >
-              18歳未満です ― EXIT
+              {'18\u6b73\u672a\u6e80\u3067\u3059 \u2015 EXIT'}
             </button>
           </div>
+
+          {showNishifunaLinks && (
+            <div
+              className="mt-6 pt-5 text-left space-y-4"
+              style={{ borderTop: '1px solid #b8860b33' }}
+            >
+              <p className="text-[10px] text-center tracking-wider" style={{ color: '#786860' }}>
+                関連リンク
+              </p>
+              <ul className="space-y-2.5">
+                {NISHIFUNA_EXTRA_LINKS.map(({ href, label }) => (
+                  <li key={href}>
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs block leading-snug underline-offset-2 hover:underline"
+                      style={{ color: '#c9a962' }}
+                    >
+                      {label}
+                    </a>
+                  </li>
+                ))}
+                <li>
+                  <a
+                    href="https://yoasobi-heaven.com/ja/chiba/shop-list/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs block leading-snug underline-offset-2 hover:underline space-y-1"
+                    style={{ color: '#c9a962' }}
+                  >
+                    <span className="font-medium block" style={{ color: '#e8d5b7' }}>
+                      JAPANESE ESCORT — Tourist Welcome!
+                    </span>
+                    <span className="block text-[11px]" style={{ color: '#a09080' }}>
+                      Hotel Delivery · Escort Tokyo / Escort Chiba · Gaijin Friendly
+                    </span>
+                    <span className="block text-[11px]" style={{ color: '#a09080' }}>
+                      Location: Nishi-Funabashi / Kinshicho / Kasai
+                    </span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>
