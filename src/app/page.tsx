@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { getBrand } from '@/lib/brand/get-brand'
 import { getTodaySchedule, getDiariesByBrand } from '@/lib/brand/brand-queries'
+import { HITODUMA_DEFAULT_STORE_CODE } from '@/lib/hitoduma/hitoduma-store'
 import type { Diary } from '@/lib/brand/brand-queries'
 import ScheduleSection from './components/ScheduleSection'
 import StoreAreaNav from '@/components/StoreAreaNav'
@@ -71,7 +72,7 @@ function DiaryCard({ diary }: { diary: Diary }) {
 export default async function MitsuPage() {
   const [brand, schedules, diaries] = await Promise.all([
     getBrand(SLUG),
-    getTodaySchedule(SLUG),
+    getTodaySchedule(SLUG, { hitodumaStore: HITODUMA_DEFAULT_STORE_CODE }),
     getDiariesByBrand({ limit: 8, forceSlug: SLUG }),
   ])
 
@@ -138,7 +139,12 @@ export default async function MitsuPage() {
       </section>
 
       {/* ===== 出勤情報（日付切り替え対応） ===== */}
-      <ScheduleSection brandId={brand.id} initialSchedules={schedules} locationPinLabel="西船橋" />
+      <ScheduleSection
+        brandId={brand.id}
+        initialSchedules={schedules}
+        locationPinLabel="西船橋"
+        hitodumaStore={HITODUMA_DEFAULT_STORE_CODE}
+      />
 
       {/* ===== 写メ日記 ===== */}
       <section className="py-16">

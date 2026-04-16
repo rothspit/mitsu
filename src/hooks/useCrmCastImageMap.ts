@@ -7,7 +7,7 @@ import {
   resolveGirlImageUrlWithCrmFallback,
 } from '@/lib/brand/crm-cast-images'
 
-const CRM_CASTS_URL = 'https://crm.h-mitsu.com/api/idol/casts?store_id=1'
+const CRM_CASTS_URL = '/api/hitoduma/casts?store=hitoduma_nishi'
 
 /**
  * 店舗スケジュール（Supabase）の girl に足りない画像を、CRM キャスト一覧で補うためのマップ。

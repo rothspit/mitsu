@@ -3,7 +3,7 @@ import { getBrand } from '@/lib/brand/get-brand'
 import { getTodaySchedule } from '@/lib/brand/brand-queries'
 import ScheduleSection from '../components/ScheduleSection'
 import OtherAreaLinks from '@/components/OtherAreaLinks'
-import { STORE_ID_BY_KEY } from '@/lib/store-map'
+import { HITODUMA_PAGE_TO_STORE_CODE } from '@/lib/hitoduma/hitoduma-store'
 
 export const revalidate = 60
 
@@ -11,8 +11,11 @@ const SLUG = 'hitomitsu'
 const serif = "var(--font-noto-serif), 'Noto Serif JP', serif"
 
 export default async function MakuhariPage() {
-  const storeId = STORE_ID_BY_KEY.makuhari
-  const [brand, schedules] = await Promise.all([getBrand(SLUG), getTodaySchedule(SLUG, storeId)])
+  const storeCode = HITODUMA_PAGE_TO_STORE_CODE.makuhari
+  const [brand, schedules] = await Promise.all([
+    getBrand(SLUG),
+    getTodaySchedule(SLUG, { hitodumaStore: storeCode }),
+  ])
 
   return (
     <main className="min-h-screen bg-white text-[#1c1917] pb-20">
@@ -33,7 +36,7 @@ export default async function MakuhariPage() {
         </p>
       </section>
 
-      <ScheduleSection brandId={brand.id} initialSchedules={schedules} storeId={storeId} />
+      <ScheduleSection brandId={brand.id} initialSchedules={schedules} hitodumaStore={storeCode} />
 
       <div className="max-w-2xl mx-auto px-4 pt-10">
         <Link

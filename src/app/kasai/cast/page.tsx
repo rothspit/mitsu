@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getBrand } from '@/lib/brand/get-brand'
 import { getGirlsByBrand } from '@/lib/brand/brand-queries'
 import GirlCard from '@/components/GirlCard'
-import { STORE_ID_BY_KEY } from '@/lib/store-map'
+import { HITODUMA_PAGE_TO_STORE_CODE } from '@/lib/hitoduma/hitoduma-store'
 
 export const revalidate = 60
 
@@ -10,10 +10,10 @@ const SLUG = 'hitomitsu'
 const serif = "var(--font-noto-serif), 'Noto Serif JP', serif"
 
 export default async function KasaiCastPage() {
-  const storeId = STORE_ID_BY_KEY.kasai
+  const storeCode = HITODUMA_PAGE_TO_STORE_CODE.kasai
   const [brand, girls] = await Promise.all([
     getBrand(SLUG),
-    getGirlsByBrand({ forceSlug: SLUG, storeId }),
+    getGirlsByBrand({ forceSlug: SLUG, hitodumaStore: storeCode }),
   ])
 
   return (

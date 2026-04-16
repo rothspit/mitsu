@@ -61,7 +61,7 @@ export default function CtaBar() {
   const dateOptions = generateDateOptions()
 
   useEffect(() => {
-    fetch('https://crm.h-mitsu.com/api/idol/casts?store_id=1')
+    fetch('/api/hitoduma/casts?store=hitoduma_nishi')
       .then((res) => res.json())
       .then((data) => {
         const casts = data.casts || data.data || []

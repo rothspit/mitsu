@@ -446,7 +446,7 @@ export default function MitsuGirlDetail({
     // 最短のご案内（CRMスケジュールから計算）
     ;(async () => {
       if (!crmCastId) return
-      const res = await fetch(`/api/crm/schedules?store_id=1`)
+      const res = await fetch('/api/hitoduma/schedules?store=hitoduma_nishi')
       if (!res.ok) return
       const json = await res.json()
       const schedules = json.schedules || []

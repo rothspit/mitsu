@@ -161,14 +161,14 @@ export default function ScheduleSection({
   brandId,
   initialSchedules,
   locationPinLabel,
-  storeId,
+  hitodumaStore,
 }: {
   brandId: string
   initialSchedules: Schedule[]
   locationPinLabel?: React.ReactNode
-  storeId?: number | string
+  /** CRM `stores.code` for 人妻の蜜（例: kasai）。クライアントは数値 store_id を持たない。 */
+  hitodumaStore: string
 }) {
-  const sid = useMemo(() => (storeId != null ? Number(storeId) : 1), [storeId])
   const today = useMemo(() => businessDate(), [])
   const [selectedDate, setSelectedDate] = useState(today)
   const [windowStart, setWindowStart] = useState(today)
@@ -198,7 +198,8 @@ export default function ScheduleSection({
     }
     setLoading(true)
     try {
-      const res = await fetch(`https://crm.h-mitsu.com/api/idol/schedules?store_id=${sid}&date=${selectedDate}`)
+      const q = new URLSearchParams({ store: hitodumaStore, date: selectedDate })
+      const res = await fetch(`/api/hitoduma/schedules?${q}`)
       if (!res.ok) throw new Error('API format mismatch')
       const json = await res.json()
       
@@ -230,7 +231,7 @@ export default function ScheduleSection({
       setSchedules([])
     }
     setLoading(false)
-  }, [brandId, selectedDate, today, initialSchedules, sid])
+  }, [brandId, selectedDate, today, initialSchedules, hitodumaStore])
 
   useEffect(() => {
     fetchSchedules()
@@ -252,7 +253,8 @@ export default function ScheduleSection({
           const i = idx++
           const date = days[i]
           try {
-            const res = await fetch(`https://crm.h-mitsu.com/api/idol/schedules?store_id=${sid}&date=${date}`)
+            const q = new URLSearchParams({ store: hitodumaStore, date })
+            const res = await fetch(`/api/hitoduma/schedules?${q}`)
             if (!res.ok) continue
             const json = await res.json()
             const dayData = (json.schedules || []).find((s: any) => s.date === date)
@@ -269,7 +271,7 @@ export default function ScheduleSection({
     } finally {
       setMonthLoading(false)
     }
-  }, [calendarWeeks, today, sid])
+  }, [calendarWeeks, today, hitodumaStore])
 
   useEffect(() => {
     if (viewMode === 'month') fetchMonthCounts()
