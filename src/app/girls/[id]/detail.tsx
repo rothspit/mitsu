@@ -8,6 +8,7 @@ import { getGirlImageUrls } from '@/lib/brand/image-utils'
 import type { Girl, Schedule } from '@/lib/brand/brand-queries'
 import type { Brand } from '@/lib/brand/brand-context'
 import { supabase } from '@/lib/supabase'
+import { HITODUMA_DEFAULT_STORE_CODE } from '@/lib/hitoduma/hitoduma-store'
 
 const serif = "var(--font-noto-serif), 'Noto Serif JP', serif"
 
@@ -217,7 +218,7 @@ function ReserveModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          store_id: 1,
+          store: HITODUMA_DEFAULT_STORE_CODE,
           date,
           in_time: inTime,
           place_type: placeType,
@@ -240,7 +241,18 @@ function ReserveModal({
     } finally {
       setSubmitting(false)
     }
-  }, [castId, castName, startTime, customerPhone, customerName, placeType, placeDetail, nominationType, courseMinutes, notes])
+  }, [
+    castId,
+    castName,
+    startTime,
+    customerPhone,
+    customerName,
+    placeType,
+    placeDetail,
+    nominationType,
+    courseMinutes,
+    notes,
+  ])
 
   if (!open) return null
 

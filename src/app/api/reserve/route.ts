@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { resolveHitodumaStoreId } from '@/lib/crm/resolve-hitoduma-store'
 
 // 予約データの型
 interface ReservationData {
-  // 必須（CRM仕様）
-  store_id: number
+  /** CRM `stores.code`（例: hitoduma_nishi）。サーバで `store_id` に解決。互換で `store_id` も可。 */
+  store?: string
+  /** `store` 未指定時のフォールバック（レガシー・数値 store_id）。 */
+  store_id?: number
   date: string // YYYY-MM-DD
   // Optional; empty string is treated as ASAP on CRM.
   in_time?: string
@@ -31,9 +34,22 @@ export async function POST(request: NextRequest) {
   try {
     const data: ReservationData = await request.json()
 
+    let storeId: number | undefined =
+      typeof data.store_id === 'number' && Number.isFinite(data.store_id) ? data.store_id : undefined
+    if (storeId == null && typeof data.store === 'string' && data.store.trim()) {
+      try {
+        storeId = resolveHitodumaStoreId(data.store.trim())
+      } catch {
+        return NextResponse.json(
+          { error: '店舗コードが不正です' },
+          { status: 400 }
+        )
+      }
+    }
+
     // バリデーション
     if (
-      !data.store_id ||
+      storeId == null ||
       !data.date ||
       !data.place_type ||
       !data.nomination_type ||
@@ -68,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     const secret = process.env.CRM_RESERVE_SECRET
     const forwarded = {
-      store_id: Number(data.store_id),
+      store_id: storeId,
       date: String(data.date),
       in_time: String(data.in_time ?? ''),
       place_type: data.place_type,

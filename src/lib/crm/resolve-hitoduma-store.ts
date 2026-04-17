@@ -9,10 +9,8 @@ export const HITODUMA_STORE_ID_BY_CODE: Record<string, number> = {
   hitoduma_nishi: 1,
   /** scripts/sync-crm.ts: kasai */
   kasai: 3,
-  /** Confirm in CRM; placeholder until `stores.code` is finalized */
+  /** CRM stores.code */
   hmitsu_kinshicho: 4,
-  hmitsu_makuhari: 5,
-  hmitsu_ichikawa: 6,
 }
 
 export function resolveHitodumaStoreId(storeCode: string): number {

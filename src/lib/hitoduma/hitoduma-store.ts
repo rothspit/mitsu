@@ -7,8 +7,12 @@ export const HITODUMA_PAGE_TO_STORE_CODE: Record<StoreKey, string> = {
   nishifuna: 'hitoduma_nishi',
   kasai: 'kasai',
   kinshicho: 'hmitsu_kinshicho',
-  makuhari: 'hmitsu_makuhari',
-  ichikawa: 'hmitsu_ichikawa',
+  /**
+   * CRM に人妻ブランドの幕張・市川行が無い間は、公開ページは西船橋ハブの `code` に寄せる。
+   * 店舗行と `stores.code` が確定したらここを差し替え、リゾルバに同じ code を追加する。
+   */
+  makuhari: 'hitoduma_nishi',
+  ichikawa: 'hitoduma_nishi',
 }
 
 /** Home / aggregate schedule: Nishifuna (hitoduma_nishi). */
