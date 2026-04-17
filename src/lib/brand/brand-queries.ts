@@ -22,6 +22,8 @@ export interface Girl {
   sort_order?: number
   created_at: string
   updated_at: string
+  /** CRM が返す主所属なら予約の `store` に使う（人妻 `stores.code`）。 */
+  hitoduma_reserve_store_code?: string
   [key: string]: unknown
 }
 

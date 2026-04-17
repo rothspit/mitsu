@@ -10,6 +10,39 @@ export type HitodumaCastFetchOpts = {
   excludeStatuses?: string[]
 }
 
+/** When CRM enriches `/idol/casts`, pick Hitoduma `stores.code` for reservations. */
+function hitodumaReserveStoreCodeFromCastRow(c: Record<string, unknown>): string | undefined {
+  const direct =
+    (typeof c.primary_store_code === 'string' && c.primary_store_code) ||
+    (typeof c.hitoduma_primary_store_code === 'string' && c.hitoduma_primary_store_code) ||
+    (typeof c.primaryStoreCode === 'string' && c.primaryStoreCode)
+  if (typeof direct === 'string') {
+    const t = direct.trim()
+    if (t) return t
+  }
+  const nested = c.primary_store as { code?: string } | undefined
+  if (nested && typeof nested.code === 'string' && nested.code.trim()) {
+    return nested.code.trim()
+  }
+  const lists = [c.cast_stores, c.castStores, c.stores]
+  for (const raw of lists) {
+    if (!Array.isArray(raw)) continue
+    const primary = raw.find(
+      (row: any) => row?.is_primary === true || row?.is_primary === 1 || row?.isPrimary === true,
+    )
+    if (!primary) continue
+    const code =
+      (typeof primary.store_code === 'string' && primary.store_code) ||
+      (typeof primary.storeCode === 'string' && primary.storeCode) ||
+      (primary.store && typeof primary.store.code === 'string' && primary.store.code)
+    if (typeof code === 'string') {
+      const t = code.trim()
+      if (t) return t
+    }
+  }
+  return undefined
+}
+
 function normalizeCastRows(casts: any[], storeId: number): any[] {
   casts = casts.map((c: any) => {
     const canonicalId = c.cast_id != null ? String(c.cast_id) : String(c.id)
@@ -24,6 +57,7 @@ function normalizeCastRows(casts: any[], storeId: number): any[] {
             : null
     const catchCopy =
       rawCatch && rawCatch.trim() && rawCatch.trim() !== '新人アイドル' ? rawCatch.trim() : undefined
+    const hitoduma_reserve_store_code = hitodumaReserveStoreCodeFromCastRow(c)
     return {
       ...c,
       id: canonicalId,
@@ -31,6 +65,7 @@ function normalizeCastRows(casts: any[], storeId: number): any[] {
       is_active: crmStatus !== '退店',
       catch_copy: catchCopy,
       images: [c.idol_image_path || c.image].filter(Boolean),
+      ...(hitoduma_reserve_store_code ? { hitoduma_reserve_store_code } : {}),
     }
   })
 

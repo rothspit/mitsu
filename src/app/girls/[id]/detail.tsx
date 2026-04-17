@@ -183,12 +183,15 @@ function ReserveModal({
   castId,
   castName,
   startTime,
+  hitodumaStoreCode,
 }: {
   open: boolean
   onClose: () => void
   castId: string
   castName: string
   startTime: string
+  /** CRM `stores.code` for 予約転送（クライアントは数値を持たない） */
+  hitodumaStoreCode: string
 }) {
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerName, setCustomerName] = useState('')
@@ -218,7 +221,7 @@ function ReserveModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          store: HITODUMA_DEFAULT_STORE_CODE,
+          store: hitodumaStoreCode,
           date,
           in_time: inTime,
           place_type: placeType,
@@ -250,8 +253,9 @@ function ReserveModal({
     placeType,
     placeDetail,
     nominationType,
-    courseMinutes,
+       courseMinutes,
     notes,
+    hitodumaStoreCode,
   ])
 
   if (!open) return null
@@ -411,6 +415,11 @@ export default function MitsuGirlDetail({
   const imageUrls = getGirlImageUrls(girl)
   const extra = girl as any
   const castExtra = extractCastProfileExtra(girl as Record<string, unknown>)
+  const hitodumaStoreCodeForReserve = useMemo(() => {
+    const c = girl.hitoduma_reserve_store_code
+    if (typeof c === 'string' && c.trim()) return c.trim()
+    return HITODUMA_DEFAULT_STORE_CODE
+  }, [girl.hitoduma_reserve_store_code])
   const hasPlayMatrix = Object.keys(castExtra.playAvailability).length > 0
   const [reserveOpen, setReserveOpen] = useState(false)
   const [reserveStartTime, setReserveStartTime] = useState<string>('なるべく早め')
@@ -886,6 +895,7 @@ export default function MitsuGirlDetail({
         castId={String(girl.id)}
         castName={girl.name}
         startTime={reserveStartTime}
+        hitodumaStoreCode={hitodumaStoreCodeForReserve}
       />
     </main>
   )
