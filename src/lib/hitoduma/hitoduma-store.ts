@@ -5,7 +5,8 @@ import type { StoreKey } from './store-pages'
  */
 export const HITODUMA_PAGE_TO_STORE_CODE: Record<StoreKey, string> = {
   nishifuna: 'hitoduma_nishi',
-  kasai: 'kasai',
+  /** 公開サイトの出勤・在籍一覧は西船橋店と同一データ（CRM 上は kasai 行も別途あり） */
+  kasai: 'hitoduma_nishi',
   kinshicho: 'hmitsu_kinshicho',
   /**
    * CRM に人妻ブランドの幕張・市川行が無い間は、公開ページは西船橋ハブの `code` に寄せる。
