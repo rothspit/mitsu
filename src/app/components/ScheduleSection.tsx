@@ -1,12 +1,16 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Link from 'next/link'
-import { getGirlImageUrl } from '@/lib/brand/image-utils'
+import { CastImageWithFallback } from '@/components/CastImageWithFallback'
+import { getGirlImageUrlCandidates } from '@/lib/brand/image-utils'
 import type { Girl, Schedule } from '@/lib/brand/brand-queries'
 import { businessDate } from '@/lib/business-date'
-import { sortSchedulesForToday } from '@/lib/schedule/sort-schedules'
+import { getCrmScheduleCardDisplay, sortSchedulesForTodayBoard } from '@/lib/crm/schedule-display'
+import type { CrmScheduleCardDisplay } from '@/lib/crm/schedule-display'
 import { dedupeSchedulesByGirlPerDay } from '@/lib/schedule/dedupe-schedules'
+import { mapHitodumaDayCastsToSchedules } from '@/lib/schedule/map-hitoduma-day'
+import { formatAgeAndBwhLine, girlExtrasFromScheduleCastRow } from '@/lib/cast-display/format-age-bwh'
 import WaitLocationPin from '@/components/WaitLocationPin'
 
 const serif = "var(--font-noto-serif), 'Noto Serif JP', serif"
@@ -69,53 +73,52 @@ function getCalendarWeeks(year: number, month: number): (string | null)[][] {
   return weeks
 }
 
+const SOKUHIME_POLL_MS = 90_000
+
 // ============================================
 // カード
 // ============================================
 
-const WAIT_STATUS_CONFIG: Record<number, { label: string; bg: string; text: string; dim?: boolean }> = {
-  1: { label: '待機中', bg: 'bg-green-500', text: 'text-white' },
-  2: { label: '接客中', bg: 'bg-orange-500', text: 'text-white', dim: true },
-  3: { label: '受付終了', bg: 'bg-gray-500', text: 'text-white', dim: true },
-}
-
 function ScheduleCard({
   schedule,
-  ended,
+  display,
   locationPinLabel,
 }: {
   schedule: Schedule
-  ended?: boolean
+  display: CrmScheduleCardDisplay
   locationPinLabel?: React.ReactNode
 }) {
   const girl = schedule.girl as Girl | undefined
-  const imageUrl = getGirlImageUrl(girl)
-  const ws = (girl as Record<string, unknown> | undefined)?.wait_status as number | undefined
-  const attendEndTime = (girl as Record<string, unknown> | undefined)?.attend_end_time as string | null | undefined
-  const wsConfig = ws ? WAIT_STATUS_CONFIG[ws] : undefined
-  const wsLabel = ws === 2 && attendEndTime ? `接客中 〜 ${attendEndTime.slice(0, 5)}` : wsConfig?.label
+  const imageCandidates = girl ? getGirlImageUrlCandidates(girl) : []
+  const { ended, showSokuhime, waitStatus: ws, footerLabel, footerTone } = display
+  const cardDimmed = ended || (showSokuhime && ws === 3) || Boolean(schedule.is_full)
+  const imageMuted =
+    ended || cardDimmed || (showSokuhime && ws === 2)
 
   return (
     <Link
       href={girl ? `/girls/${girl.id}` : '#'}
       className={`bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition group ${
-        ended ? 'opacity-40' : wsConfig?.dim ? 'opacity-60' : ''
+        cardDimmed ? 'opacity-50' : showSokuhime && ws === 2 ? 'opacity-90' : ''
       }`}
     >
       <div className="aspect-[3/4] bg-[#f5f5f4] relative overflow-hidden">
-        {imageUrl ? (
-          <img
-            src={imageUrl}
+        {imageCandidates.length > 0 ? (
+          <CastImageWithFallback
+            candidates={imageCandidates}
             alt={girl?.name || ''}
             className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${
-              ended ? 'grayscale' : wsConfig?.dim ? 'grayscale-[30%]' : ''
+              imageMuted ? 'grayscale-[35%]' : ''
             }`}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="text-3xl opacity-15">👤</span>
+          <div className="w-full h-full flex flex-col items-center justify-center px-2">
+            <p className="text-[10px] text-[#78716c] tracking-wider text-center leading-relaxed">
+              画像を準備中です
+            </p>
           </div>
         )}
+        {/* 地域ピンはトップ（集約）ページのみ。店舗ページでは渡さない。 */}
         {locationPinLabel != null && (
           <div className="absolute bottom-1.5 left-1.5">
             <WaitLocationPin
@@ -126,28 +129,35 @@ function ScheduleCard({
             />
           </div>
         )}
-        {ended ? (
-          <span className="absolute top-1.5 right-1.5 text-[10px] bg-gray-500 text-white rounded-full px-2 py-0.5 shadow-sm font-medium">
-            本日終了
-          </span>
-        ) : wsConfig ? (
-          <span className={`absolute top-1.5 right-1.5 text-[10px] ${wsConfig.bg} ${wsConfig.text} rounded-full px-2 py-0.5 shadow-sm font-medium`}>
-            {wsLabel}
-          </span>
-        ) : null}
-        {schedule.schedule_text && (
-          <span className="absolute top-1.5 left-1.5 text-[10px] text-white bg-[#b8860b] rounded-full px-2 py-0.5 shadow-sm">
-            {schedule.schedule_text}
-          </span>
-        )}
       </div>
+
       <div className="p-3 text-center">
         <p className="text-sm font-medium text-[#1c1917]" style={{ fontFamily: serif }}>
           {girl?.name || '—'}
         </p>
-        <p className="text-[10px] text-[#b8860b] mt-1">
+        {(() => {
+          const line = formatAgeAndBwhLine(girl as Record<string, unknown> | undefined)
+          return line ? (
+            <p className="text-[10px] text-[#78716c] mt-1 leading-snug tabular-nums">{line}</p>
+          ) : null
+        })()}
+        <p className="text-[10px] text-[#b8860b] mt-1 tabular-nums">
           {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
         </p>
+
+        {footerLabel && (
+          <p
+            className={`mt-1 text-[11px] leading-snug ${
+              footerTone === 'sokuhime'
+                ? 'font-bold text-red-600'
+                : footerTone === 'busy'
+                  ? 'font-bold text-orange-700'
+                  : 'font-medium text-[#a8a29e]'
+            }`}
+          >
+            {footerLabel}
+          </p>
+        )}
       </div>
     </Link>
   )
@@ -162,12 +172,15 @@ export default function ScheduleSection({
   initialSchedules,
   locationPinLabel,
   hitodumaStore,
+  scheduleMoreHref = '/nishifuna/schedule',
 }: {
   brandId: string
   initialSchedules: Schedule[]
   locationPinLabel?: React.ReactNode
   /** CRM `stores.code` for 人妻の蜜（例: kasai）。クライアントは数値 store_id を持たない。 */
   hitodumaStore: string
+  /** 店舗別の出勤表フルページ */
+  scheduleMoreHref?: string
 }) {
   const today = useMemo(() => businessDate(), [])
   const [selectedDate, setSelectedDate] = useState(today)
@@ -177,12 +190,70 @@ export default function ScheduleSection({
     dedupeSchedulesByGirlPerDay(initialSchedules)
   )
   const [loading, setLoading] = useState(false)
+  /** 日付連打時に古いレスポンスで出勤が上書きされないようにする */
+  const fetchGenerationRef = useRef(0)
+  const selectedDateRef = useRef(selectedDate)
+  const isFirstFetchRef = useRef(true)
+  selectedDateRef.current = selectedDate
   const displayWeek = useMemo(() => getRollingDates(windowStart, 7), [windowStart])
   const isViewingToday = selectedDate === today
-  const { sorted: sortedSchedules, endedIds } = useMemo(
-    () => sortSchedulesForToday(schedules, isViewingToday),
+  const { sorted: sortedSchedules, displayById } = useMemo(
+    () => sortSchedulesForTodayBoard(schedules, isViewingToday),
     [schedules, isViewingToday]
   )
+
+  /** `/idol/schedules` には年齢・looks が無いことが多い → `/api/hitoduma/casts` で補完 */
+  const [castExtrasById, setCastExtrasById] = useState(() => new Map<string, ReturnType<typeof girlExtrasFromScheduleCastRow>>())
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/hitoduma/casts?store=${encodeURIComponent(hitodumaStore)}`)
+        if (!res.ok) return
+        const json = (await res.json()) as Record<string, unknown>
+        const rows = Array.isArray(json.data)
+          ? json.data
+          : Array.isArray(json.casts)
+            ? json.casts
+            : Array.isArray(json)
+              ? json
+              : []
+        const m = new Map<string, ReturnType<typeof girlExtrasFromScheduleCastRow>>()
+        for (const row of rows) {
+          if (!row || typeof row !== 'object') continue
+          const r = row as Record<string, unknown>
+          const id = r.cast_id != null ? String(r.cast_id) : r.id != null ? String(r.id) : ''
+          if (!id) continue
+          m.set(id, girlExtrasFromScheduleCastRow(r))
+        }
+        if (!cancelled) setCastExtrasById(m)
+      } catch {
+        if (!cancelled) setCastExtrasById(new Map())
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [hitodumaStore])
+
+  const schedulesForCards = useMemo(() => {
+    if (castExtrasById.size === 0) return sortedSchedules
+    return sortedSchedules.map((s) => {
+      const g = s.girl as Girl | undefined
+      const id = g?.id ? String(g.id) : s.girl_id != null ? String(s.girl_id) : ''
+      if (!id || !g) return s
+      const extra = castExtrasById.get(id)
+      if (!extra) return s
+      return {
+        ...s,
+        girl: {
+          ...g,
+          ...extra,
+        },
+      }
+    })
+  }, [sortedSchedules, castExtrasById])
 
   const initialYM = useMemo(() => monthStart(today), [today])
   const [calYear, setCalYear] = useState(initialYM.year)
@@ -191,51 +262,58 @@ export default function ScheduleSection({
   const [monthCounts, setMonthCounts] = useState<Record<string, number>>({})
   const [monthLoading, setMonthLoading] = useState(false)
 
-  const fetchSchedules = useCallback(async () => {
-    if (selectedDate === today) {
-      setSchedules(dedupeSchedulesByGirlPerDay(initialSchedules))
-      return
-    }
-    setLoading(true)
-    try {
-      const q = new URLSearchParams({ store: hitodumaStore, date: selectedDate })
-      const res = await fetch(`/api/hitoduma/schedules?${q}`)
-      if (!res.ok) throw new Error('API format mismatch')
-      const json = await res.json()
-      
-      const dayData = (json.schedules || []).find((s: any) => s.date === selectedDate)
-      
-      const mappedSchedules = dayData ? dayData.casts.map((c: any) => ({
-        id: `${selectedDate}-${c.id}`,
-        girl_id: String(c.cast_id),
-        brand_id: brandId || '1',
-        date: selectedDate,
-        start_time: c.start_time,
-        end_time: c.end_time,
-        status: c.status,
-        schedule_text: c.schedule_text || '',
-        girl: {
-          id: String(c.cast_id),
-          name: c.name,
-          images: [c.idol_image_path || c.image].filter(Boolean),
-          brand_id: brandId || '1',
-          is_active: true,
-          created_at: '',
-          updated_at: ''
+  const fetchSchedules = useCallback(
+    async (opts?: { silent?: boolean; date?: string }) => {
+      const date = opts?.date ?? selectedDateRef.current
+      const silent = opts?.silent ?? false
+      const generation = ++fetchGenerationRef.current
+
+      if (!silent) setLoading(true)
+      try {
+        const q = new URLSearchParams({ store: hitodumaStore, date })
+        const res = await fetch(`/api/hitoduma/schedules?${q}`, { cache: 'no-store' })
+        if (!res.ok) throw new Error('API format mismatch')
+        const json = await res.json()
+
+        // より新しい日付リクエストが走っていたら捨てる（未来→本日で未来が残る原因）
+        if (generation !== fetchGenerationRef.current) return
+        if (date !== selectedDateRef.current) return
+
+        const dayData = (json.schedules || []).find((s: { date?: string }) => s.date === date)
+        const mappedSchedules = dayData?.casts
+          ? mapHitodumaDayCastsToSchedules(dayData.casts, date, brandId || '1')
+          : []
+
+        setSchedules(dedupeSchedulesByGirlPerDay(mappedSchedules as Schedule[]))
+      } catch (e) {
+        if (generation !== fetchGenerationRef.current) return
+        if (date !== selectedDateRef.current) return
+        console.error(e)
+        // silent でも日付不一致のまま残さない（本日に戻したのに未来が出勤のまま、を防ぐ）
+        setSchedules([])
+      } finally {
+        if (generation === fetchGenerationRef.current && !silent) {
+          setLoading(false)
         }
-      })) : []
-      
-      setSchedules(dedupeSchedulesByGirlPerDay(mappedSchedules as Schedule[]))
-    } catch (e) {
-      console.error(e)
-      setSchedules([])
-    }
-    setLoading(false)
-  }, [brandId, selectedDate, today, initialSchedules, hitodumaStore])
+      }
+    },
+    [brandId, hitodumaStore],
+  )
 
   useEffect(() => {
-    fetchSchedules()
-  }, [fetchSchedules])
+    // 初回のみ SSR の本日分を残したまま裏で更新。日付変更時は必ず loading。
+    const silentFirstToday = isFirstFetchRef.current && selectedDate === today
+    isFirstFetchRef.current = false
+    fetchSchedules({ silent: silentFirstToday, date: selectedDate })
+  }, [fetchSchedules, selectedDate, today])
+
+  useEffect(() => {
+    if (!isViewingToday || viewMode !== 'week') return
+    const timer = window.setInterval(() => {
+      fetchSchedules({ silent: true, date: selectedDateRef.current })
+    }, SOKUHIME_POLL_MS)
+    return () => window.clearInterval(timer)
+  }, [fetchSchedules, isViewingToday, viewMode])
 
   const fetchMonthCounts = useCallback(async () => {
     setMonthLoading(true)
@@ -279,18 +357,30 @@ export default function ScheduleSection({
 
   const selectDate = (dateStr: string) => {
     if (dateStr < today) return
+    if (dateStr === selectedDate) return
+    // 先に選択日を変え、古い出勤リストを残さない
     setSelectedDate(dateStr)
+    setSchedules([])
+    setLoading(true)
   }
 
   const goNextWeek = () => {
     const nextStart = addDays(windowStart, 7)
     setWindowStart(nextStart)
-    if (selectedDate < nextStart) setSelectedDate(nextStart)
+    if (selectedDate < nextStart) {
+      setSelectedDate(nextStart)
+      setSchedules([])
+      setLoading(true)
+    }
   }
 
   const backToToday = () => {
     setWindowStart(today)
-    setSelectedDate(today)
+    if (selectedDate !== today) {
+      setSelectedDate(today)
+      setSchedules([])
+      setLoading(true)
+    }
   }
 
   const goMonth = (offset: number) => {
@@ -314,8 +404,12 @@ export default function ScheduleSection({
   const selectFromCalendar = (dateStr: string) => {
     if (dateStr < today) return
     setWindowStart(dateStr)
-    setSelectedDate(dateStr)
     setViewMode('week')
+    if (dateStr !== selectedDate) {
+      setSelectedDate(dateStr)
+      setSchedules([])
+      setLoading(true)
+    }
   }
 
   return (
@@ -514,11 +608,14 @@ export default function ScheduleSection({
           </div>
         ) : schedules.length > 0 ? (
           <div className="grid grid-cols-3 gap-3">
-            {sortedSchedules.map((s) => (
+            {schedulesForCards.map((s) => (
               <ScheduleCard
-                key={s.id}
+                key={`${selectedDate}-${s.id}`}
                 schedule={s}
-                ended={endedIds.has(s.id)}
+                display={
+                  displayById.get(s.id) ??
+                  getCrmScheduleCardDisplay(s, { isToday: isViewingToday })
+                }
                 locationPinLabel={locationPinLabel}
               />
             ))}
@@ -532,7 +629,7 @@ export default function ScheduleSection({
         {/* 出勤表ページへのリンク */}
         <div className="mt-8 text-center">
           <Link
-            href="/schedule"
+            href={scheduleMoreHref}
             className="inline-block border border-[#b8860b]/30 text-[#b8860b] text-xs px-8 py-3 tracking-[0.15em] hover:bg-[#b8860b]/5 transition"
           >
             出勤情報をもっと見る
