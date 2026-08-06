@@ -1,13 +1,56 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { HITOMITSU_PHONE } from '@/lib/brand/hitomitsu-phone'
+import { membershipUrl } from '@/lib/membership'
 
 const PHONE = HITOMITSU_PHONE
-const DISCORD_WEBHOOK = 'https://discordapp.com/api/webhooks/1475912332063408404/odrVJd5Ftsyh-5_oaJq75ELf-gJvTxtqMH18i6trvod2fBpTc7YTHtuY1_882A8IYtmF'
 const COURSES = ['60分', '90分', '120分', '180分']
-const BRAND_ID = 'a1876a1a-1b51-4970-b25e-893ce0910690'
+
+const RECRUIT_LINKS = [
+  {
+    href: '/recruit/cast',
+    label: 'キャスト求人',
+    className:
+      'flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[12px] font-semibold tracking-[0.08em] text-[#a85d68] hover:bg-[#fff7f5] transition-colors',
+  },
+  {
+    href: '/recruit/staff',
+    label: 'スタッフ求人',
+    className:
+      'flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[12px] font-semibold tracking-[0.08em] text-[#0b5f59] hover:bg-[#f3faf8] transition-colors',
+  },
+] as const
+
+const RESERVE_STORES = [
+  { code: 'hitoduma_nishi', label: '西船橋店', pathPrefixes: ['/nishifuna', '/makuhari', '/ichikawa'], storeKey: 'nishifuna' },
+  { code: 'kasai', label: '葛西店', pathPrefixes: ['/kasai'], storeKey: 'kasai' },
+  { code: 'hmitsu_kinshicho', label: '錦糸町店', pathPrefixes: ['/kinshicho'], storeKey: 'kinshicho' },
+] as const
+
+const DEFAULT_STORE_CODE = 'hitoduma_nishi'
+
+function storeCodeFromPath(pathname: string | null): string {
+  if (!pathname) return DEFAULT_STORE_CODE
+  const matched = RESERVE_STORES.find((store) =>
+    store.pathPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+  )
+  return matched?.code ?? DEFAULT_STORE_CODE
+}
+
+function storeKeyFromPath(pathname: string | null): string {
+  if (!pathname) return 'nishifuna'
+  const matched = RESERVE_STORES.find((store) =>
+    store.pathPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+  )
+  return matched?.storeKey ?? 'nishifuna'
+}
+
+function storeLabelFor(code: string): string {
+  return RESERVE_STORES.find((store) => store.code === code)?.label ?? '店舗未指定'
+}
 
 function generateTimeOptions() {
   const opts: { value: string; label: string }[] = []
@@ -50,6 +93,7 @@ export default function CtaBar() {
   const [sending, setSending] = useState(false)
   const [omakase, setOmakase] = useState(false)
   const [castNames, setCastNames] = useState<string[]>([])
+  const [store, setStore] = useState(() => storeCodeFromPath(pathname))
   const [tel, setTel] = useState('')
   const [name, setName] = useState('')
   const [date, setDate] = useState('')
@@ -61,7 +105,14 @@ export default function CtaBar() {
   const dateOptions = generateDateOptions()
 
   useEffect(() => {
-    fetch('/api/hitoduma/casts?store=hitoduma_nishi')
+    setStore(storeCodeFromPath(pathname))
+  }, [pathname])
+
+  useEffect(() => {
+    setCast('')
+    setCastNames([])
+
+    fetch(`/api/hitoduma/casts?store=${encodeURIComponent(store)}`)
       .then((res) => res.json())
       .then((data) => {
         const casts = data.casts || data.data || []
@@ -70,7 +121,7 @@ export default function CtaBar() {
         setCastNames(activeCasts.map((g: any) => g.name).filter(Boolean))
       })
       .catch((err) => console.error('Failed to fetch cast names for CtaBar', err))
-  }, [])
+  }, [store])
 
   if (pathname?.startsWith('/admin')) return null
 
@@ -90,24 +141,25 @@ export default function CtaBar() {
     if (!tel.trim()) return
     setSending(true)
 
-    const lines = [
-      `📅 **WEB予約**`,
-      `📞 ${tel.trim()}`,
-      name.trim() ? `👤 ${name.trim()}` : null,
-      omakase ? '✨ **全てお店にお任せ**' : null,
-      !omakase && date ? `🗓 希望日: ${date}` : null,
-      !omakase && time ? `🕐 希望時間: ${time}` : null,
-      !omakase && course ? `⏱ コース: ${course}` : null,
-      !omakase && cast ? `💎 指名: ${cast}` : null,
-      !omakase && area.trim() ? `📍 場所: ${area.trim()}` : null,
-    ].filter(Boolean).join('\n')
-
     try {
-      await fetch(DISCORD_WEBHOOK, {
+      const res = await fetch('/api/reserve-notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: lines }),
+        body: JSON.stringify({
+          store,
+          store_label: storeLabelFor(store),
+          customer_phone: tel.trim(),
+          customer_name: name.trim() || null,
+          omakase,
+          date: omakase ? null : date || null,
+          time: omakase ? null : time || null,
+          course: omakase ? null : course || null,
+          cast_name: omakase ? null : cast || null,
+          place_detail: omakase ? null : area.trim() || null,
+          source_url: typeof window !== 'undefined' ? window.location.href : null,
+        }),
       })
+      if (!res.ok) throw new Error('Failed to submit reservation notification')
       setDone(true)
     } catch {
       alert('送信に失敗しました。お電話にてお問い合わせください。')
@@ -122,22 +174,41 @@ export default function CtaBar() {
   return (
     <>
       {/* Fixed CTA Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-[9999] flex border-t border-[#b8860b]/20 bg-white/95 backdrop-blur shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
+      <div className="fixed bottom-0 left-0 right-0 z-[9999] border-t border-[#b8860b]/20 bg-white/95 backdrop-blur shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
+        <div className="flex">
+          <a
+            href={`tel:${PHONE}`}
+            className="flex-1 flex items-center justify-center gap-2 py-3 text-[14px] font-semibold text-[#b8860b] hover:bg-[#b8860b]/5 transition-colors"
+          >
+            <span className="text-base">☎</span>
+            電話する
+          </a>
+          <div className="w-px bg-[#b8860b]/15 my-2" />
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="flex-1 flex items-center justify-center gap-2 py-3 text-[14px] font-semibold text-white bg-[#b8860b] hover:bg-[#a07508] transition-colors"
+          >
+            <span className="text-base">📅</span>
+            予約する
+          </button>
+        </div>
         <a
-          href={`tel:${PHONE}`}
-          className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[14px] font-semibold text-[#b8860b] hover:bg-[#b8860b]/5 transition-colors"
+          href={membershipUrl({ store: storeKeyFromPath(pathname), path: 'login' })}
+          className="flex items-center justify-center gap-2 py-2.5 text-[12px] font-semibold tracking-[0.08em] text-[#1c1917] bg-[#fff8ef] border-t border-[#b8860b]/15 hover:bg-[#fff1df] transition-colors"
         >
-          <span className="text-base">☎</span>
-          電話する
+          会員ログイン・Web予約
         </a>
-        <div className="w-px bg-[#b8860b]/15 my-2" />
-        <button
-          onClick={() => setOpen(true)}
-          className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[14px] font-semibold text-white bg-[#b8860b] hover:bg-[#a07508] transition-colors"
-        >
-          <span className="text-base">📅</span>
-          予約する
-        </button>
+        <div className="flex border-t border-[#b8860b]/10">
+          {RECRUIT_LINKS.map((link, index) => (
+            <div key={link.href} className="contents">
+              {index > 0 ? <div className="w-px bg-[#b8860b]/10 my-1.5" /> : null}
+              <Link href={link.href} className={link.className}>
+                {link.label}
+              </Link>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Modal Overlay */}
@@ -157,9 +228,19 @@ export default function CtaBar() {
 
             {!done ? (
               <div className="p-5 pt-6">
-                <h2 className="text-center text-amber-500 text-lg tracking-wider mb-5" style={{ fontFamily: "var(--font-noto-serif), 'Noto Serif JP', serif" }}>
+                <h2 className="text-center text-amber-500 text-lg tracking-wider mb-3" style={{ fontFamily: "var(--font-noto-serif), 'Noto Serif JP', serif" }}>
                   ご予約・お問い合わせ
                 </h2>
+                <p className="text-center text-[12px] text-neutral-400 mb-5 leading-relaxed">
+                  会員の方は
+                  <a
+                    href={membershipUrl({ store: storeKeyFromPath(pathname), path: 'browse' })}
+                    className="text-amber-400 underline underline-offset-2 mx-1"
+                  >
+                    Web予約（会員ログイン）
+                  </a>
+                  もご利用いただけます。
+                </p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Phone */}
@@ -187,6 +268,18 @@ export default function CtaBar() {
                       placeholder="例：タナカ"
                       className={inputClass}
                     />
+                  </div>
+
+                  {/* Store */}
+                  <div>
+                    <label className="block text-[13px] text-neutral-400 mb-1.5">
+                      ご希望店舗<span className="text-amber-500 text-[11px] ml-1">必須</span>
+                    </label>
+                    <select value={store} onChange={(e) => setStore(e.target.value)} className={selectClass} required>
+                      {RESERVE_STORES.map((s) => (
+                        <option key={s.code} value={s.code}>{s.label}</option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Omakase */}
@@ -295,7 +388,7 @@ export default function CtaBar() {
           from { transform: translateY(100%); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
         }
-        body { padding-bottom: 64px !important; }
+        body { padding-bottom: 128px !important; }
         select option { background: #1a1a1a; color: #f3f3f3; }
       `}</style>
     </>
