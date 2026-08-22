@@ -46,9 +46,9 @@ const FALLBACK_BRANDS: Record<BrandSlug, Brand> = {
     domain: 'h-mitsu.com',
     area: '西船橋・葛西・錦糸町',
     site_title: '人妻の蜜｜西船橋・葛西・錦糸町',
-    site_tagline: '大人の極上癒やし',
+    site_tagline: '優しい、性の解放を。',
     phone: HITOMITSU_PHONE,
-    description: '人妻の蜜 - 大人の極上癒やし空間。',
+    description: '人妻の蜜 - 優しい、性の解放を。',
     theme_config: {
       colors: {
         primary: '#7c3aed',

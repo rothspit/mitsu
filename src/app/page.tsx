@@ -77,7 +77,7 @@ export default async function MitsuPage() {
   ])
 
   const taglineRaw = brand.site_tagline || '大人の極上癒やし'
-  const tagline = '極上の癒しを求道'
+  const tagline = '優しい、性の解放を。'
 
   const jsonLd = {
     '@context': 'https://schema.org',
