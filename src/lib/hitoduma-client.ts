@@ -1,4 +1,5 @@
 import { resolveHitodumaStoreId } from '@/lib/crm/resolve-hitoduma-store'
+import { castDisplayNameLooksIncomplete } from '@/lib/brand/public-cast-filter'
 import type { Girl, Schedule } from '@/lib/brand/brand-queries'
 
 const API_BASE_URL = 'https://crm.h-mitsu.com/api'
@@ -113,6 +114,7 @@ function normalizeCastRows(casts: any[], storeId: number): any[] {
 
 function filterCasts(casts: any[], opts?: HitodumaCastFetchOpts): Girl[] {
   const beforeFilter = casts.length
+  casts = casts.filter((c: any) => !castDisplayNameLooksIncomplete(c?.name))
   const exclude = opts?.excludeStatuses?.length ? opts.excludeStatuses : ['退店']
   if (exclude.length > 0) {
     const excludeSet = new Set(exclude)
@@ -162,7 +164,9 @@ export async function getHitodumaScheduleByDate(storeCode: string, date: string)
     const data = await res.json()
     const dayData = (data.schedules || []).find((s: any) => s.date === date)
     if (!dayData) return []
-    return dayData.casts.map((c: any) => ({
+    return dayData.casts
+      .filter((c: any) => !castDisplayNameLooksIncomplete(c?.name))
+      .map((c: any) => ({
       id: `${date}-${c.id}`,
       girl_id: String(c.cast_id),
       brand_id: String(storeId),
