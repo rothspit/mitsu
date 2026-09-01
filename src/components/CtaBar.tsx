@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { HITOMITSU_PHONE } from '@/lib/brand/hitomitsu-phone'
+import { castDisplayNameLooksIncomplete } from '@/lib/brand/public-cast-filter'
 import { membershipUrl } from '@/lib/membership'
 
 const PHONE = HITOMITSU_PHONE
@@ -117,7 +118,12 @@ export default function CtaBar() {
       .then((data) => {
         const casts = data.casts || data.data || []
         // Only active casts (not 退店, not お休み中)
-        const activeCasts = casts.filter((c: any) => c.status !== '退店' && c.status !== 'お休み中')
+        const activeCasts = casts.filter(
+          (c: any) =>
+            c.status !== '退店' &&
+            c.status !== 'お休み中' &&
+            !castDisplayNameLooksIncomplete(c?.name),
+        )
         setCastNames(activeCasts.map((g: any) => g.name).filter(Boolean))
       })
       .catch((err) => console.error('Failed to fetch cast names for CtaBar', err))

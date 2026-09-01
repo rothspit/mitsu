@@ -5,6 +5,10 @@ import {
   getHitodumaWeekScheduleForGirl,
 } from '@/lib/hitoduma-client'
 import { HITODUMA_DEFAULT_STORE_CODE } from '@/lib/hitoduma/hitoduma-store'
+import {
+  castDisplayNameLooksIncomplete,
+  castHasPublicPhoto,
+} from '@/lib/brand/public-cast-filter'
 
 // ============================================
 // 型定義
@@ -91,12 +95,15 @@ export async function getGirlsByBrand(opts?: {
   excludeStatuses?: string[]
 }): Promise<Girl[]> {
   const code = opts?.hitodumaStore ?? HITODUMA_DEFAULT_STORE_CODE
-  return getHitodumaCasts(code, {
+  const girls = await getHitodumaCasts(code, {
     limit: opts?.limit,
     status: opts?.status,
     includeInactive: opts?.includeInactive,
     excludeStatuses: opts?.excludeStatuses,
   })
+  return girls.filter(
+    (g) => !castDisplayNameLooksIncomplete(g.name) && castHasPublicPhoto(g),
+  )
 }
 
 export async function getGirlsCount(forceSlug?: string): Promise<number> {
